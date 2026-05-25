@@ -1,0 +1,62 @@
+/* wofi theme (PORTABLE) */
+* {
+    font-family: "JetBrainsMono Nerd Font", monospace;
+    font-size: 14px;
+}
+
+window {
+    background-color: rgba(20,20,31,0.92);
+    border: 2px solid #88aaff;
+    border-radius: 16px;
+}
+
+#input {
+    margin: 12px;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 12px;
+    background-color: rgba(40,40,60,0.8);
+    color: #e0e0f0;
+    caret-color: #88aaff;
+}
+
+#input:focus {
+    border: 1px solid #88aaff;
+}
+
+#inner-box {
+    margin: 8px;
+    background-color: transparent;
+}
+
+#outer-box {
+    margin: 0;
+    background-color: transparent;
+}
+
+#scroll {
+    margin: 0 8px;
+}
+
+#text {
+    color: #d0d0e0;
+    padding: 0 8px;
+}
+
+#entry {
+    padding: 8px;
+    border-radius: 10px;
+    margin: 2px 4px;
+}
+
+#entry:selected {
+    background-color: #88aaff;
+}
+
+#entry:selected #text {
+    color: #14141f;
+}
+
+#entry image {
+    margin-right: 8px;
+}
