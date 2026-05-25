@@ -1,0 +1,4 @@
+*.bak
+*.log
+*.stub-backup
+.cache/

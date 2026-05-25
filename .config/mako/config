@@ -1,0 +1,20 @@
+# Mako notifications customized (PORTABLE)
+sort=-time
+layer=overlay
+background-color=#14141fee
+text-color=#e0e0f0
+width=340
+height=120
+border-size=2
+border-color=#88aaff
+border-radius=14
+icons=1
+max-icon-size=48
+default-timeout=5000
+font=JetBrainsMono Nerd Font 11
+margin=12
+padding=14
+
+[urgency=critical]
+border-color=#ff6688
+default-timeout=0
