@@ -33,14 +33,18 @@
         "format-wifi": "  {signalStrength}%",
         "format-ethernet": "  wired",
         "format-disconnected": "  off",
-        "tooltip-format": "{ifname} via {gwaddr}"
+        "tooltip-format": "{ifname} via {gwaddr}",
+        "on-click": "kitty --class floatterm -e nmtui",
+        "on-click-right": "blueman-manager"
     },
 
     "battery": {
         "format": "{icon}  {capacity}%",
         "format-charging": "  {capacity}%",
         "format-icons": ["", "", "", "", ""],
-        "states": { "warning": 30, "critical": 15 }
+        "states": { "warning": 30, "critical": 15 },
+        "on-click": "~/.config/waybar/cyclepower.sh",
+        "tooltip-format": "{capacity}% click to cycle power profile"
     },
 
     "tray": {
