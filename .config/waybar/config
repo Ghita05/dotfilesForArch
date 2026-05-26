@@ -8,7 +8,7 @@
     "spacing": 6,
 
     "modules-left": ["hyprland/workspaces"],
-    "modules-center": ["clock"],
+    "modules-center": ["mpris", "clock"],
     "modules-right": ["pulseaudio", "network", "battery", "tray"],
 
     "hyprland/workspaces": {
@@ -16,6 +16,20 @@
         "on-click": "activate"
     },
 
+    "mpris": {
+        "format": "󰓇  {title}",
+        "max-length": 28,
+        "player-icons": {
+        "spotify": ""
+        },
+        "ignored-players": [],
+        "tooltip": true,
+        "tooltip-format": "{player}\n {title}",
+        "on-click": "playerctl play-pause",
+        "on-click-right": "playerctl next",
+        "on-click-middle": "playerctl previous"
+    },
+    
     "clock": {
         "format": "{:%H:%M}",
         "format-alt": "{:%A, %B %d}",
