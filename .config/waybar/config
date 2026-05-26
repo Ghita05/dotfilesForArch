@@ -35,9 +35,10 @@
        "on-click": "pavucontrol"
    },
    "network": {
+       "format-wifi": " {signalStrength}%",
        "format-ethernet": " wired",
        "format-disconnected": " off",
-       "tooltip-format": "{iframe} via {gwaddr}"
+       "tooltip-format": "{ifname} via {gwaddr}"
    },
    "battery": {
        "format": "{icon} {capacity}%",

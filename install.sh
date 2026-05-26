@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 set -e
-DOTFILE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_SRC="$DOTFILES_DIR/.config"
 CONFIG_DEST="$HOME/.config"
 
 echo "==> Installing official packages..."
 if command -v pacman >/dev/null; then
-   sudo pacman -S -needed - < "$DOTFILES_DIR/packages.txt"
+   sudo pacman -S --needed $(cat "$DOTFILES_DIR/packages.txt")
 fi
 
 if [ -f "$DOTFILES_DIR/packages-aur.txt" ] && command -v yay >/dev/null; then
     echo "==> Installing AUR packages..."
-    yay -S --needed - < "$DOTFILES_DIR/packages-aur.txt"
+    yay -S --needed $(cat "$DOTFILES_DIR/packages-aur.txt")
 fi
 
 echo "==> Linking confings..."
