@@ -84,6 +84,8 @@ hl.config({
         disable_splash_rendering = true,
     },
 })
+hl.layer_rule({ match = { namespace = "quickshell" }, blur = true })
+hl.layer_rule({ match = { namespace = "quickshell" }, ignore_alpha = 0.3 })
 
 -- Animation curves + animations
 hl.curve("liquid", { type = "bezier", points = { {0.23, 1}, {0.32, 1} } })
@@ -106,6 +108,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("/usr/lib/polkit-gnome-authentication-agent-1")
     hl.exec_cmd("hypridle")
     hl.exec_cmd("waybar")
+    hl.exec_cmd("quickshell")
 end)
 
 ---------------------
@@ -153,3 +156,6 @@ hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO
 hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true })
 hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl set 5%+"), { locked = true, repeating = true })
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl set 5%-"), { locked = true, repeating = true })
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
+
+
