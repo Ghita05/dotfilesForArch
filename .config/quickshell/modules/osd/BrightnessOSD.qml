@@ -4,7 +4,8 @@ import Quickshell.Io
 
 BaseOSD {
     id: bri
-    icon: ""
+    icon: "󰃟"  // Brightness icon (Nerd Font)
+    bottomOffset: 160  // Brightness higher up to avoid overlap
 
     Process {
         id: brightnessProcess

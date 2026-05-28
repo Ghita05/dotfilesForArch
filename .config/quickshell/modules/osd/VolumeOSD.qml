@@ -4,7 +4,8 @@ import Quickshell.Io
 
 BaseOSD {
     id: vol
-    icon: dimmed ? "" : ""
+    icon: dimmed ? "󰝟" : "󰕾"  // Muted / Volume icons (Nerd Font)
+    bottomOffset: 80  // Volume at bottom
 
     Process {
         id: volumeProcess

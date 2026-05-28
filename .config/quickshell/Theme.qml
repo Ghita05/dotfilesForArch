@@ -2,22 +2,26 @@ pragma Singleton
 import QtQuick
 
 QtObject {
-    // Background / surfaces — deeper, more charcoal
+    // Background / surfaces — deep charcoal base
     readonly property color base:        "#0a0b0f"
     readonly property color surface:     "#12141a"
-    // ~60% opacity for liquid feel
-    readonly property color surfaceGlass: "#9912141a"
+    
+    // Apple liquid glass — ultra transparent with better contrast
+    readonly property color surfaceGlass:    "#2412141a"  // ~14% opacity — slightly more visible
+    readonly property color surfaceGlassHi:  "#3012141a"  // ~19% opacity — subtle hover
+    readonly property color surfaceVeryGlass: "#1512141a"  // ~8% opacity — ultra minimal
+    
+    // Text — medium-light grey for both light & dark backgrounds
+    readonly property color text:        "#a8b0be"  // readable on both backgrounds
+    readonly property color textDim:     "#7a8290"  // muted grey
+    readonly property color textGlassy:  "#b0b8c6"  // premium glass text
 
-    // Text — softer, less white
-    readonly property color text:        "#c8ccd6"
-    readonly property color textDim:     "#5a5f6b"
+    // Accent — keep the blue
+    readonly property color accent:      "#4a6fa8"  // darker blue
+    readonly property color accentBright: "#6a85c0"  // vibrant blue
 
-    // Accent — dimmer, greyer blue
-    readonly property color accent:      "#6a85a8"
-    readonly property color accentBright: "#85a0c0"
-
-    // Border — barely-there cool-grey
-    readonly property color border:      "#2080a0c0"
+    // Border — virtually invisible (liquid flow)
+    readonly property color border:      "#0880a0c0"  // ~3% opacity — almost ghost
 
     // Font
     readonly property string fontFamily: "JetBrainsMono Nerd Font"

@@ -12,8 +12,13 @@ PanelWindow {
     property int maxValue: 100
     property bool dimmed: false     // e.g. muted state — greys out the bar
     property bool visible_: false
+    property int bottomOffset: 80   // Customize vertical position
 
-    // ─── Layer ─────────────────────────────────────────────
+    // ─── Overlay positioning (bottom, floating) ─────
+    anchors { bottom: true }
+    margins { bottom: bottomOffset }
+    exclusiveZone: 0  // Don't reserve space - allow overlap
+    
     Component.onCompleted: {
         if (this.WlrLayershell != null) {
             this.WlrLayershell.layer = WlrLayer.Overlay
@@ -21,8 +26,6 @@ PanelWindow {
     }
 
     // ─── Window ────────────────────────────────────────────
-    anchors { bottom: true }
-    margins.bottom: 80
     implicitWidth: 280
     implicitHeight: 56
     color: "transparent"
@@ -51,7 +54,9 @@ PanelWindow {
                 text: root.icon
                 color: Root.Theme.accent
                 font.family: Root.Theme.fontFamily
-                font.pixelSize: 18
+                font.pixelSize: 20
+                antialiasing: true
+                visible: root.icon !== ""
             }
 
             Rectangle {
@@ -78,8 +83,9 @@ PanelWindow {
                 text: root.value + "%"
                 color: Root.Theme.text
                 font.family: Root.Theme.fontFamily
-                font.pixelSize: 13
-                font.weight: Font.Medium
+                font.pixelSize: 16
+                font.weight: Font.SemiBold
+                antialiasing: true
             }
         }
     }
