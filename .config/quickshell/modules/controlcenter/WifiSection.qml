@@ -10,12 +10,44 @@ ColumnLayout {
     spacing: 12
 
     // =========================
-    // STATE (ONLY SOURCE OF TRUTH)
+    // STATE
     // =========================
 
     property bool wifiEnabled: false
     property string activeSsid: ""
     property var networks: []
+
+    // =========================
+    // PROCESSES
+    // =========================
+
+    Process {
+        id: checkWifiProc
+        command: ["nmcli", "radio", "wifi"]
+        stdout: StdioCollector { id: checkWifiStdout }
+    }
+
+    Process {
+        id: toggleWifiProc
+        stdout: StdioCollector { id: toggleWifiStdout }
+    }
+
+    Process {
+        id: scanProc
+        command: ["nmcli", "-t", "-f", "IN-USE,SSID,SIGNAL", "device", "wifi", "list"]
+        stdout: StdioCollector { id: scanStdout }
+    }
+
+    Process {
+        id: activeConnProc
+        command: ["nmcli", "-t", "-f", "ACTIVE,SSID", "device", "wifi", "list"]
+        stdout: StdioCollector { id: activeConnStdout }
+    }
+
+    Process {
+        id: connectProc
+        stdout: StdioCollector { id: connectStdout }
+    }
 
     // =========================
     // TIMERS
@@ -25,14 +57,14 @@ ColumnLayout {
         interval: 8000
         running: root.wifiEnabled
         repeat: true
-        onTriggered: scanNetworks()
+        onTriggered: scanProc.running = true
     }
 
     Timer {
         id: delayedScan
         interval: 1200
         repeat: false
-        onTriggered: scanNetworks()
+        onTriggered: scanProc.running = true
     }
 
     // =========================
@@ -70,7 +102,13 @@ ColumnLayout {
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
-                onClicked: toggleWifi()
+                onClicked: {
+                    toggleWifiProc.command = [
+                        "nmcli", "radio", "wifi",
+                        root.wifiEnabled ? "off" : "on"
+                    ]
+                    toggleWifiProc.running = true
+                }
             }
         }
     }
@@ -134,7 +172,12 @@ ColumnLayout {
                 MouseArea {
                     anchors.fill: parent
                     enabled: modelData.ssid !== root.activeSsid
-                    onClicked: connectToNetwork(modelData.ssid)
+                    onClicked: {
+                        connectProc.command = [
+                            "nmcli", "device", "wifi", "connect", modelData.ssid
+                        ]
+                        connectProc.running = true
+                    }
                 }
             }
         }
@@ -154,68 +197,37 @@ ColumnLayout {
     }
 
     // =========================
-    // FUNCTIONS
+    // PROCESS HANDLERS
     // =========================
 
-    function toggleWifi() {
-        let proc = Process.launch([
-            "nmcli",
-            "radio",
-            "wifi",
-            root.wifiEnabled ? "off" : "on"
-        ])
-
-        proc.finished.connect(() => {
-            root.wifiEnabled = !root.wifiEnabled
-
+    Connections {
+        target: checkWifiStdout
+        function onStreamFinished() {
+            root.wifiEnabled = checkWifiStdout.text.trim() === "enabled"
             if (root.wifiEnabled) {
-                delayedScan.start()
-                updateActiveConnection()
-            } else {
-                root.networks = []
-                root.activeSsid = ""
+                scanProc.running = true
+                activeConnProc.running = true
             }
-        })
+        }
     }
 
-    function scanNetworks() {
-        let proc = Process.launch([
-            "nmcli",
-            "-t",
-            "-f",
-            "IN-USE,SSID,SIGNAL",
-            "device",
-            "wifi",
-            "list"
-        ])
-
-        let output = ""
-
-        proc.stdout.connect(d => output += d.toString())
-
-        proc.finished.connect(() => {
-
+    Connections {
+        target: scanStdout
+        function onStreamFinished() {
+            let output = scanStdout.text
             let lines = output.trim().split("\n")
-
             let list = []
             let seen = {}
 
             for (let line of lines) {
-
                 let parts = line.split(":")
-
-                if (parts.length < 3) continue
-                if (!parts[1]) continue
+                if (parts.length < 3 || !parts[1]) continue
 
                 let active = parts[0].includes("*")
-
-                if (active) {
-                    root.activeSsid = parts[1]
-                }
+                if (active) root.activeSsid = parts[1]
 
                 if (!seen[parts[1]]) {
                     seen[parts[1]] = true
-
                     list.push({
                         ssid: parts[1],
                         signal: parseInt(parts[2]) || 0
@@ -225,54 +237,46 @@ ColumnLayout {
 
             list.sort((a, b) => b.signal - a.signal)
             root.networks = list
-        })
+        }
     }
 
-    function updateActiveConnection() {
-        let proc = Process.launch([
-            "nmcli",
-            "-t",
-            "-f",
-            "ACTIVE,SSID",
-            "device",
-            "wifi",
-            "list"
-        ])
-
-        let output = ""
-
-        proc.stdout.connect(d => output += d.toString())
-
-        proc.finished.connect(() => {
-
+    Connections {
+        target: activeConnStdout
+        function onStreamFinished() {
+            let output = activeConnStdout.text
             let lines = output.trim().split("\n")
 
             for (let line of lines) {
                 let parts = line.split(":")
-
                 if (parts[0] === "yes") {
                     root.activeSsid = parts[1]
                     return
                 }
             }
-
             root.activeSsid = ""
-        })
+        }
     }
 
-    function connectToNetwork(ssid) {
-        let proc = Process.launch([
-            "nmcli",
-            "device",
-            "wifi",
-            "connect",
-            ssid
-        ])
+    Connections {
+        target: toggleWifiStdout
+        function onStreamFinished() {
+            root.wifiEnabled = !root.wifiEnabled
+            if (root.wifiEnabled) {
+                delayedScan.start()
+                activeConnProc.running = true
+            } else {
+                root.networks = []
+                root.activeSsid = ""
+            }
+        }
+    }
 
-        proc.finished.connect(() => {
-            updateActiveConnection()
-            scanNetworks()
-        })
+    Connections {
+        target: connectStdout
+        function onStreamFinished() {
+            activeConnProc.running = true
+            Qt.callLater(() => { scanProc.running = true })
+        }
     }
 
     // =========================
@@ -280,21 +284,6 @@ ColumnLayout {
     // =========================
 
     Component.onCompleted: {
-
-        let proc = Process.launch(["nmcli", "radio", "wifi"])
-
-        let output = ""
-
-        proc.stdout.connect(d => output += d.toString())
-
-        proc.finished.connect(() => {
-
-            root.wifiEnabled = output.trim() === "enabled"
-
-            if (root.wifiEnabled) {
-                scanNetworks()
-                updateActiveConnection()
-            }
-        })
+        checkWifiProc.running = true
     }
 }

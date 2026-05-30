@@ -18,7 +18,7 @@ ShellRoot {
     // Connect external toggle signal to CC
     Connections {
         target: root
-        onToggleCC: controlCenter.toggle()
+        function onToggleCC() { controlCenter.toggle() }
     }
     
     // Expose toggle function to IPC

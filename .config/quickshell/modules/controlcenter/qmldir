@@ -1,0 +1,4 @@
+module controlcenter
+ControlCenter 1.0 ControlCenter.qml
+WifiSection 1.0 WifiSection.qml
+BluetoothSection 1.0 BluetoothSection.qml

@@ -7,7 +7,12 @@ import "../.." as Root
 
 PanelWindow {
     id: root
-
+    IpcHandler {
+        target: "controlCenter"
+        function toggle(): void { root.open = !root.open }
+        function show(): void { root.open = true }
+        function hide(): void { root.open = false }
+    }
     property bool open: false
 
     visible: open
@@ -85,6 +90,16 @@ PanelWindow {
             }
 
             WifiSection {
+                Layout.fillWidth: true
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: "#33FFFFFF"
+            }
+
+            BluetoothSection {
                 Layout.fillWidth: true
             }
 
