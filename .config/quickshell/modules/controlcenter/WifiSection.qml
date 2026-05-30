@@ -34,7 +34,7 @@ ColumnLayout {
 
     Process {
         id: scanProc
-        command: ["nmcli", "-t", "-f", "IN-USE,SSID,SIGNAL", "device", "wifi", "list"]
+        command: ["nmcli", "-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "device", "wifi", "list"]
         stdout: StdioCollector { id: scanStdout }
     }
 
@@ -71,42 +71,61 @@ ColumnLayout {
     // HEADER
     // =========================
 
-    RowLayout {
+RowLayout {
         Layout.fillWidth: true
+        spacing: 10
 
         Text {
             text: "Wi-Fi"
-            color: "white"
+            color: Root.Theme.text
+            font.family: Root.Theme.fontFamily
             font.pixelSize: 14
             font.weight: Font.Medium
             Layout.fillWidth: true
         }
 
+        // Refresh button
+        Text {
+            text: "↻"
+            color: Root.Theme.textDim
+            font.family: Root.Theme.fontFamily
+            font.pixelSize: 16
+            opacity: refreshArea.containsMouse ? 1.0 : 0.6
+            Behavior on opacity { NumberAnimation { duration: 150 } }
+
+            MouseArea {
+                id: refreshArea
+                anchors.fill: parent
+                anchors.margins: -6
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: scanProc.running = true
+            }
+        }
+
+        // Toggle pill
         Rectangle {
-            width: 52
-            height: 26
-            radius: 13
-            color: root.wifiEnabled ? "#4CAF50" : "#555"
+            width: 44
+            height: 22
+            radius: 11
+            color: root.wifiEnabled ? Root.Theme.accent : "#33ffffff"
+            Behavior on color { ColorAnimation { duration: 200 } }
 
             Rectangle {
-                width: 20
-                height: 20
-                radius: 10
-                color: "white"
+                width: 16
+                height: 16
+                radius: 8
+                color: Root.Theme.text
                 anchors.verticalCenter: parent.verticalCenter
-                x: root.wifiEnabled ? 28 : 4
-
-                Behavior on x { NumberAnimation { duration: 150 } }
+                x: root.wifiEnabled ? parent.width - width - 3 : 3
+                Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
             }
 
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                    toggleWifiProc.command = [
-                        "nmcli", "radio", "wifi",
-                        root.wifiEnabled ? "off" : "on"
-                    ]
+                    toggleWifiProc.command = ["nmcli", "radio", "wifi", root.wifiEnabled ? "off" : "on"]
                     toggleWifiProc.running = true
                 }
             }
@@ -133,50 +152,212 @@ ColumnLayout {
         spacing: 6
         visible: root.wifiEnabled
 
-        Repeater {
+Repeater {
             model: root.networks
 
-            Rectangle {
+            Item {
+                id: rowItem
                 Layout.fillWidth: true
-                height: 44
-                radius: 12
+                implicitHeight: mainRow.height + (expanded ? actionRow.height + 6 : 0)
+                Behavior on implicitHeight {
+                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                }
 
-                color: modelData.ssid === root.activeSsid
-                    ? "#3355AAFF"
-                    : "#22FFFFFF"
+                property bool expanded: false
+                clip: true
 
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: 10
+                // The main row
+                Rectangle {
+                    id: mainRow
+                    width: parent.width
+                    height: 40
+                    radius: 12
 
-                    Text {
-                        text: modelData.ssid === root.activeSsid ? "✓" : ""
-                        color: "#7CFFB2"
-                        font.pixelSize: 14
+                    color: rowHover.containsMouse
+                        ? "#1a8ca0c8"
+                        : (modelData.ssid === root.activeSsid ? "#287d9bc4" : "#0affffff")
+                    Behavior on color { ColorAnimation { duration: 150 } }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        spacing: 10
+
+                        Text {
+                            text: modelData.ssid === root.activeSsid ? "✓" : ""
+                            color: Root.Theme.accent
+                            font.family: Root.Theme.fontFamily
+                            font.pixelSize: 13
+                            visible: text.length > 0
+                        }
+
+                        Text {
+                            text: modelData.ssid
+                            color: Root.Theme.text
+                            font.family: Root.Theme.fontFamily
+                            font.pixelSize: 13
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            text: modelData.signal + "%"
+                            color: Root.Theme.textDim
+                            font.family: Root.Theme.fontFamily
+                            font.pixelSize: 11
+                        }
                     }
 
-                    Text {
-                        text: modelData.ssid
-                        color: "white"
-                        Layout.fillWidth: true
-                        elide: Text.ElideRight
-                    }
-
-                    Text {
-                        text: modelData.signal + "%"
-                        color: "#CCCCCC"
-                        font.pixelSize: 11
+                    MouseArea {
+                        id: rowHover
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: rowItem.expanded = !rowItem.expanded
                     }
                 }
 
-                MouseArea {
-                    anchors.fill: parent
-                    enabled: modelData.ssid !== root.activeSsid
-                    onClicked: {
-                        connectProc.command = [
-                            "nmcli", "device", "wifi", "connect", modelData.ssid
-                        ]
-                        connectProc.running = true
+                // Action row: shows Connect/Disconnect or password prompt
+                Rectangle {
+                    id: actionRow
+                    anchors.top: mainRow.bottom
+                    anchors.topMargin: 6
+                    width: parent.width
+                    height: 36
+                    radius: 10
+                    color: "#1a8ca0c8"
+                    visible: rowItem.expanded
+                    opacity: rowItem.expanded ? 1 : 0
+                    Behavior on opacity { NumberAnimation { duration: 180 } }
+
+                    // Whether this row needs a password (secured + not the active network)
+                    property bool needsPassword: modelData.secured && modelData.ssid !== root.activeSsid
+                    property bool showPasswordInput: false
+
+                    // STATE 1: Connect / Disconnect / Cancel
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        spacing: 10
+                        visible: !actionRow.showPasswordInput
+
+                        Text {
+                            text: modelData.ssid === root.activeSsid ? "Disconnect" : "Connect"
+                            color: Root.Theme.accent
+                            font.family: Root.Theme.fontFamily
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                            Layout.fillWidth: true
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (modelData.ssid === root.activeSsid) {
+                                        connectProc.command = ["nmcli", "connection", "down", "id", modelData.ssid]
+                                        connectProc.running = true
+                                        rowItem.expanded = false
+                                    } else if (actionRow.needsPassword) {
+                                        actionRow.showPasswordInput = true
+                                    } else {
+                                        connectProc.command = ["nmcli", "device", "wifi", "connect", modelData.ssid]
+                                        connectProc.running = true
+                                        rowItem.expanded = false
+                                    }
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: "Cancel"
+                            color: Root.Theme.textDim
+                            font.family: Root.Theme.fontFamily
+                            font.pixelSize: 12
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: rowItem.expanded = false
+                            }
+                        }
+                    }
+
+                    // STATE 2: Password input
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        spacing: 8
+                        visible: actionRow.showPasswordInput
+
+                        TextInput {
+                            id: pwInput
+                            Layout.fillWidth: true
+                            color: Root.Theme.text
+                            font.family: Root.Theme.fontFamily
+                            font.pixelSize: 12
+                            echoMode: TextInput.Password
+                            focus: actionRow.showPasswordInput
+                            clip: true
+                            selectByMouse: true
+                            onAccepted: {
+                                if (text.length > 0) {
+                                    connectProc.command = ["nmcli", "device", "wifi", "connect", modelData.ssid, "password", text]
+                                    connectProc.running = true
+                                    actionRow.showPasswordInput = false
+                                    rowItem.expanded = false
+                                    text = ""
+                                }
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "Password"
+                                color: Root.Theme.textDim
+                                font: pwInput.font
+                                visible: pwInput.text.length === 0
+                            }
+                        }
+
+                        Text {
+                            text: "Join"
+                            color: Root.Theme.accent
+                            font.family: Root.Theme.fontFamily
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (pwInput.text.length > 0) {
+                                        connectProc.command = ["nmcli", "device", "wifi", "connect", modelData.ssid, "password", pwInput.text]
+                                        connectProc.running = true
+                                        actionRow.showPasswordInput = false
+                                        rowItem.expanded = false
+                                        pwInput.text = ""
+                                    }
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: "×"
+                            color: Root.Theme.textDim
+                            font.family: Root.Theme.fontFamily
+                            font.pixelSize: 14
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    actionRow.showPasswordInput = false
+                                    pwInput.text = ""
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -230,7 +411,8 @@ ColumnLayout {
                     seen[parts[1]] = true
                     list.push({
                         ssid: parts[1],
-                        signal: parseInt(parts[2]) || 0
+                        signal: parseInt(parts[2]) || 0,
+                        secured: parts[3] && parts[3].length > 0
                     })
                 }
             }

@@ -64,7 +64,7 @@ hl.config({
             size = 8,
             passes = 3,
             new_optimizations = true,
-            ignore_opacity = true,
+            ignore_opacity = false,
             xray = false,
             noise = 0.015,
             contrast = 1.1,
@@ -85,9 +85,7 @@ hl.config({
     },
 })
 
-hl.layer_rule({ match = { namespace = "quickshell" }, blur = true })
-hl.layer_rule({ match = { namespace = "quickshell" }, ignore_alpha = 0.3 })
-hl.layer_rule({ match = { namespace = "quickshell" }, blur = true, ignore_alpha = 0.3 })
+hl.layer_rule({ match = { namespace = "quickshell" }, blur = true, ignore_alpha = 0.6 })
 
 -- Animation curves + animations
 hl.curve("liquid", { type = "bezier", points = { {0.23, 1}, {0.32, 1} } })
