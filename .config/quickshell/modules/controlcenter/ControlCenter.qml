@@ -14,10 +14,16 @@ PanelWindow {
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore   // don't respect waybar's exclusion zone
 
-    Component.onCompleted: {
+Component.onCompleted: {
         if (this.WlrLayershell) {
             this.WlrLayershell.layer = WlrLayer.Overlay
-            this.WlrLayershell.keyboardFocus = open ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+        }
+    }
+
+    // Reactive: update keyboard focus whenever open changes
+    onOpenChanged: {
+        if (this.WlrLayershell) {
+            this.WlrLayershell.keyboardFocus = open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         }
     }
 
