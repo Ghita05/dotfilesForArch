@@ -6,52 +6,36 @@
     "margin-left": 12,
     "margin-right": 12,
     "spacing": 6,
-
-    "modules-left": ["hyprland/workspaces"],
-    "modules-center": ["mpris", "clock"],
+    "modules-left": ["custom/workspaces"],
+    "modules-center": ["clock"],
     "modules-right": ["pulseaudio", "network", "battery", "tray"],
-
-    "hyprland/workspaces": {
-        "format": "{name}",
-        "on-click": "activate"
+    "custom/workspaces": {
+        "exec": "~/.config/waybar/ws-status.sh",
+        "format": "{}",
+        "return-type": "json",
+        "escape": false,
+        "on-scroll-up":   "hyprctl dispatch 'hl.dsp.focus({ workspace = \"r-1\" })'",
+        "on-scroll-down": "hyprctl dispatch 'hl.dsp.focus({ workspace = \"r+1\" })'"
     },
-
-    "mpris": {
-        "format": "󰓇  {title}",
-        "max-length": 28,
-        "player-icons": {
-        "spotify": ""
-        },
-        "ignored-players": [],
-        "tooltip": true,
-        "tooltip-format": "{player}\n {title}",
-        "on-click": "playerctl play-pause",
-        "on-click-right": "playerctl next",
-        "on-click-middle": "playerctl previous"
-    },
-    
     "clock": {
         "format": "{:%H:%M}",
         "format-alt": "{:%A, %B %d}",
         "tooltip-format": "<tt><small>{calendar}</small></tt>"
     },
-
     "pulseaudio": {
-        "format": "  {volume}%",
-        "format-muted": "  muted",
+        "format": "   {volume}%",
+        "format-muted": "  muted",
         "format-icons": { "default": ["", "", ""] },
         "on-click": "pavucontrol"
     },
-
     "network": {
-        "format-wifi": "  {signalStrength}%",
-        "format-ethernet": "  wired",
-        "format-disconnected": "  off",
+        "format-wifi": "   {signalStrength}%",
+        "format-ethernet": "  wired",
+        "format-disconnected": "   off",
         "tooltip-format": "{ifname} via {gwaddr}",
         "on-click": "kitty --class floatterm -e nmtui",
         "on-click-right": "blueman-manager"
     },
-
     "battery": {
         "format": "{icon}  {capacity}%",
         "format-charging": "  {capacity}%",
@@ -60,7 +44,6 @@
         "on-click": "~/.config/waybar/cyclepower.sh",
         "tooltip-format": "{capacity}% click to cycle power profile"
     },
-
     "tray": {
         "spacing": 10
     }

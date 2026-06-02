@@ -20,6 +20,7 @@ window#waybar {
     padding: 0 8px;
 }
 
+/* Legacy workspaces module rules (dead — kept for reference / quick rollback) */
 #workspaces {
     padding: 0 4px;
 }
@@ -58,22 +59,56 @@ window#waybar {
     background: rgba(196, 184, 138, 0.7);
 }
 
+/* Active per-pill workspace buttons (custom/ws-1..5) */
+#custom-ws-1,
+#custom-ws-2,
+#custom-ws-3,
+#custom-ws-4,
+#custom-ws-5 {
+    color: #50545f;
+    background: transparent;
+    padding: 0 10px;
+    margin: 4px 2px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                padding 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#custom-ws-1:hover,
+#custom-ws-2:hover,
+#custom-ws-3:hover,
+#custom-ws-4:hover,
+#custom-ws-5:hover {
+    color: #a8b0c0;
+    background: rgba(125, 155, 196, 0.10);
+    border: 1px solid rgba(125, 155, 196, 0.18);
+}
+
+#custom-ws-1.active,
+#custom-ws-2.active,
+#custom-ws-3.active,
+#custom-ws-4.active,
+#custom-ws-5.active {
+    color: #c8ccd8;
+    background: rgba(125, 155, 196, 0.28);
+    padding: 0 14px;
+    border: 1px solid rgba(125, 155, 196, 0.4);
+}
+
+#custom-ws-1.empty,
+#custom-ws-2.empty,
+#custom-ws-3.empty,
+#custom-ws-4.empty,
+#custom-ws-5.empty {
+    color: #2e313a;
+}
+
 #clock {
     color: #d8dce5;
     font-weight: 600;
     padding: 0 16px;
-}
-
-#mpris {
-    color: #c8ccd8;
-    padding: 0 14px;
-    margin: 4px 2px;
-    border-radius: 10px;
-    min-width: 120px;
-}
-
-#mpris:hover {
-    color: #9db4d8;
 }
 
 #pulseaudio,
