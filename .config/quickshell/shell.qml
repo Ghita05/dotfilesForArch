@@ -2,6 +2,9 @@ import QtQuick
 import Quickshell
 import "modules/osd"
 import "modules/controlcenter"
+import "modules/bar"
+import "modules/launcher"
+import "modules/notifications"
 
 ShellRoot {
     id: root
@@ -25,4 +28,9 @@ ShellRoot {
     function toggleControlCenter() {
         controlCenter.toggle()
     }
+
+    Bar{}
+    BarPopups {}
+    Launcher{}
+    Notifications{}
 }

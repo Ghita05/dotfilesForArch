@@ -2,27 +2,31 @@ pragma Singleton
 import QtQuick
 
 QtObject {
-    // Background / surfaces — deep charcoal base
     readonly property color base:        "#0a0b0f"
     readonly property color surface:     "#12141a"
-    
-    // Apple liquid glass — ultra transparent with better contrast
-    readonly property color surfaceGlass:    "#2412141a"  // ~14% opacity — slightly more visible
-    readonly property color surfaceGlassHi:  "#3012141a"  // ~19% opacity — subtle hover
-    readonly property color surfaceVeryGlass: "#1512141a"  // ~8% opacity — ultra minimal
-    
-    // Text — medium-light grey for both light & dark backgrounds
-    readonly property color text:        "#a8b0be"  // readable on both backgrounds
-    readonly property color textDim:     "#7a8290"  // muted grey
-    readonly property color textGlassy:  "#b0b8c6"  // premium glass text
 
-    // Accent — keep the blue
-    readonly property color accent:      "#4a6fa8"  // darker blue
-    readonly property color accentBright: "#6a85c0"  // vibrant blue
+    // Glass surfaces — more presence for contrast, still translucent over blur
+    readonly property color surfaceGlass:     "#4012141a"  // ~25% — default card
+    readonly property color surfaceGlassHi:   "#5512141a"  // ~33% — hover
+    readonly property color surfaceVeryGlass: "#2812141a"  // ~16% — inputs
 
-    // Border — virtually invisible (liquid flow)
-    readonly property color border:      "#0880a0c0"  // ~3% opacity — almost ghost
+    // Text — brighter ramp for clear legibility
+    readonly property color text:        "#d4d9e3"
+    readonly property color textDim:     "#9298a6"
+    readonly property color textGlassy:  "#c4cad6"
 
-    // Font
+    readonly property color accent:       "#5a7fb8"
+    readonly property color accentBright: "#6a85c0"
+    readonly property color accentSoft:   "#7d9bc4"
+
+    readonly property color selection:       "#387d9bc4"
+    readonly property color selectionStrong: "#807d9bc4"
+
+    readonly property color border:      "#1f8ca0c8"  // ~12% — edges now read
+
+    readonly property color good:  "#8aac8e"
+    readonly property color warn:  "#c4b88a"
+    readonly property color crit:  "#c47d8a"
+
     readonly property string fontFamily: "JetBrainsMono Nerd Font"
 }
