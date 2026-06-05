@@ -107,7 +107,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("wl-paste --watch cliphist store")
     hl.exec_cmd("/usr/lib/polkit-gnome-authentication-agent-1")
     hl.exec_cmd("hypridle")
-    hl.exec_cmd("waybar")
+    hl.exec_cmd("quickshell/modules/bar")
     hl.exec_cmd("quickshell")
 end)
 

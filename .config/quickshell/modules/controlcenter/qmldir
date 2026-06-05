@@ -2,3 +2,6 @@ module controlcenter
 ControlCenter 1.0 ControlCenter.qml
 WifiSection 1.0 WifiSection.qml
 BluetoothSection 1.0 BluetoothSection.qml
+AudioSection 1.0 AudioSection.qml
+BatterySection 1.0 BatterySection.qml
+DisplaySection 1.0 DisplaySection.qml
