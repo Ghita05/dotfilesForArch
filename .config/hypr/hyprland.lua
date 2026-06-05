@@ -85,6 +85,7 @@ hl.config({
     },
 })
 
+
 hl.layer_rule({ match = { namespace = "quickshell" }, blur = true, ignore_alpha = 0.6 })
 
 -- Animation curves + animations
@@ -103,11 +104,9 @@ hl.animation({ leaf = "workspaces", enabled = true, speed = 6, bezier = "liquid"
 hl.on("hyprland.start", function()
     hl.exec_cmd("awww-daemon")
     hl.exec_cmd("sleep 1 && awww img ~/.config/wallpapers/mountfuji.jpg --transition-type fade")
-    hl.exec_cmd("mako")
     hl.exec_cmd("wl-paste --watch cliphist store")
     hl.exec_cmd("/usr/lib/polkit-gnome-authentication-agent-1")
     hl.exec_cmd("hypridle")
-    hl.exec_cmd("quickshell/modules/bar")
     hl.exec_cmd("quickshell")
 end)
 
@@ -121,12 +120,14 @@ hl.bind(mainMod .. " + C", hl.dsp.window.close())
 hl.bind(mainMod .. " + M", hl.dsp.exit())
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + B", hl.dsp.window.float({ action = "toggle" }))
-hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(menu))
 hl.bind(mainMod .. " + P", hl.dsp.window.pseudo())
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
-hl.bind(mainMod .. " + X", hl.dsp.exec_cmd("wlogout --buttons-per-row 2"))
+hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("qs ipc call powerMenu toggle"))
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("hyprlock"))
 hl.bind(mainMod .. " + V", hl.dsp.exec_cmd("cliphist list | wofi --dmenu | cliphist decode | wl-copy"))
+hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("qs ipc call controlCenter toggle"))
+hl.bind(mainMod .. " + S", hl.dsp.exec_cmd("~/.local/bin/toggle-recording"))
+hl.bind(mainMod .. " + Space", hl.dsp.exec_cmd("qs ipc call launcher toggle"))
 
 -- Move focus
 hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }))
@@ -158,6 +159,3 @@ hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl set 5%+"), { locke
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl set 5%-"), { locked = true, repeating = true })
 hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
 
-hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("qs ipc call controlCenter toggle"))
-hl.bind(mainMod .. " + S", hl.dsp.exec_cmd("~/.local/bin/toggle-recording"))
-hl.bind(mainMod .. " + Space", hl.dsp.exec_cmd("qs ipc call launcher toggle"))

@@ -10,7 +10,14 @@ PanelWindow {
     anchors { top: true; bottom: true; left: true; right: true }
     exclusionMode: ExclusionMode.Ignore
 
+    // popups that contain text inputs need the keyboard; icon popups don't
+    readonly property bool needsKeyboard: Root.PopupState.active === "calendar" || Root.PopupState.active === "reminders"
+
     Component.onCompleted: { if (this.WlrLayershell != null) this.WlrLayershell.layer = WlrLayer.Overlay }
+    onNeedsKeyboardChanged: {
+        if (this.WlrLayershell != null)
+            this.WlrLayershell.keyboardFocus = needsKeyboard ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    }
 
     mask: Region { item: catcher }
 
@@ -20,6 +27,10 @@ PanelWindow {
         MouseArea { anchors.fill: parent; onClicked: Root.PopupState.close() }
     }
 
-    CalendarPopup { anchors.top: parent.top; anchors.horizontalCenter: parent.horizontalCenter; anchors.topMargin: 54 }
-    MediaPopup    { anchors.top: parent.top; anchors.horizontalCenter: parent.horizontalCenter; anchors.topMargin: 54 }
+    VolumePopup    { anchors.top: parent.top; anchors.right: parent.right; anchors.topMargin: 54; anchors.rightMargin: 12 }
+    NetworkPopup   { anchors.top: parent.top; anchors.right: parent.right; anchors.topMargin: 54; anchors.rightMargin: 12 }
+    BatteryPopup   { anchors.top: parent.top; anchors.right: parent.right; anchors.topMargin: 54; anchors.rightMargin: 12 }
+    RemindersPopup { anchors.top: parent.top; anchors.right: parent.right; anchors.topMargin: 54; anchors.rightMargin: 12 }
+    CalendarPopup  { anchors.top: parent.top; anchors.horizontalCenter: parent.horizontalCenter; anchors.topMargin: 54 }
+    MediaPopup     { anchors.top: parent.top; anchors.horizontalCenter: parent.horizontalCenter; anchors.topMargin: 54 }
 }

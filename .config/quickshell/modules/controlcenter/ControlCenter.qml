@@ -51,7 +51,7 @@ PanelWindow {
         width: 440
         anchors { top: parent.top; bottom: parent.bottom; right: parent.right; margins: 12 }
         radius: 24
-        color: "#cc0c0e13"
+        color: Root.Theme.panel
         border.color: Root.Theme.border
         border.width: 1
 

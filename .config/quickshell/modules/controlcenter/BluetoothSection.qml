@@ -9,21 +9,28 @@ ColumnLayout {
     spacing: 16
 
     property bool btEnabled: false
-    property string connName: ""
-    property string connAddr: ""
-    property int battery: -1
     property var devices: []
-    property var connectedAddrs: []   // NEW: every connected device
+    property var connectedDevices: []   // [{address, name}]
+    property var connectedAddrs: []
+    property int selIdx: 0
+    property int selBattery: -1
+    property string selName: ""
+    readonly property var selDev: (connectedDevices.length > selIdx && selIdx >= 0) ? connectedDevices[selIdx] : null
 
     Process { id: checkProc; command: ["bluetoothctl", "show"]; stdout: StdioCollector { id: checkOut } }
     Process { id: toggleProc; stdout: StdioCollector { id: toggleOut } }
     Process { id: devProc; command: ["bluetoothctl", "devices"]; stdout: StdioCollector { id: devOut } }
-    Process { id: connListProc; command: ["bluetoothctl", "devices", "Connected"]; stdout: StdioCollector { id: connListOut } }  // NEW
-    Process { id: infoProc; command: ["bluetoothctl", "info"]; stdout: StdioCollector { id: infoOut } }
+    Process { id: connListProc; command: ["bluetoothctl", "devices", "Connected"]; stdout: StdioCollector { id: connListOut } }
+    Process { id: infoProc; stdout: StdioCollector { id: infoOut } }
     Process { id: actProc; stdout: StdioCollector { id: actOut } }
 
-    function refresh() { devProc.running = true; Qt.callLater(() => { connListProc.running = true; infoProc.running = true }) }
-    function scan() { Quickshell.execDetached(["sh", "-c", "bluetoothctl --timeout 6 scan on"]); actProc.command = ["sh", "-c", "bluetoothctl --timeout 6 scan on"]; actProc.running = true }
+    function refresh() { devProc.running = true; Qt.callLater(() => connListProc.running = true) }
+    function scan() { actProc.command = ["sh", "-c", "bluetoothctl --timeout 6 scan on"]; actProc.running = true }
+    function queryInfo() {
+        if (!selDev) { selName = ""; selBattery = -1; return }
+        infoProc.command = ["bluetoothctl", "info", selDev.address]; infoProc.running = true
+    }
+    function cycleSel() { if (connectedDevices.length < 2) return; selIdx = (selIdx + 1) % connectedDevices.length; queryInfo() }
     Component.onCompleted: checkProc.running = true
     Timer { interval: 5000; running: root.btEnabled; repeat: true; onTriggered: root.refresh() }
 
@@ -61,9 +68,14 @@ ColumnLayout {
             Column {
                 anchors.centerIn: parent; spacing: 3
                 Text { anchors.horizontalCenter: parent.horizontalCenter; text: "\uf025"; color: root.connectedAddrs.length > 0 ? Root.Theme.text : Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 26 }
-                Text { anchors.horizontalCenter: parent.horizontalCenter; width: 110; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight; text: root.connName !== "" ? root.connName : "Not connected"; color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Medium }
-                Text { anchors.horizontalCenter: parent.horizontalCenter; visible: root.connectedAddrs.length > 0; text: root.connectedAddrs.length > 1 ? root.connectedAddrs.length + " connected" : "Connected"; color: Root.Theme.good; font.family: Root.Theme.fontFamily; font.pixelSize: 9 }
+                Text { anchors.horizontalCenter: parent.horizontalCenter; width: 112; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight; text: root.selDev ? (root.selName !== "" ? root.selName : root.selDev.name) : "Not connected"; color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Medium }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter; visible: root.connectedAddrs.length > 0
+                    text: root.connectedDevices.length > 1 ? "(" + (root.selIdx + 1) + "/" + root.connectedDevices.length + ") · tap" : "Connected"
+                    color: Root.Theme.good; font.family: Root.Theme.fontFamily; font.pixelSize: 9
+                }
             }
+            MouseArea { anchors.fill: parent; enabled: root.connectedDevices.length > 1; cursorShape: Qt.PointingHandCursor; onClicked: root.cycleSel() }
         }
 
         component Sat: Rectangle {
@@ -101,8 +113,8 @@ ColumnLayout {
         Rectangle { width: 24; height: 2; anchors.left: hub.right; anchors.verticalCenter: hub.verticalCenter; color: Root.Theme.border; opacity: 0.6 }
 
         Sat { label: "Switch / Scan"; value: "Scan Devices"; delay: 240; anchors.bottom: hub.top; anchors.bottomMargin: 24; anchors.horizontalCenter: hub.horizontalCenter; onActivated: root.scan() }
-        Sat { label: "MAC Address"; value: root.connAddr !== "" ? root.connAddr : "—"; delay: 300; anchors.right: hub.left; anchors.rightMargin: 24; anchors.verticalCenter: hub.verticalCenter }
-        Sat { label: "Battery"; value: root.battery >= 0 ? root.battery + "%" : "—"; delay: 340; anchors.left: hub.right; anchors.leftMargin: 24; anchors.verticalCenter: hub.verticalCenter }
+        Sat { label: "MAC Address"; value: root.selDev ? root.selDev.address : "—"; delay: 300; anchors.right: hub.left; anchors.rightMargin: 24; anchors.verticalCenter: hub.verticalCenter }
+        Sat { label: "Battery"; value: root.selBattery >= 0 ? root.selBattery + "%" : "—"; delay: 340; anchors.left: hub.right; anchors.leftMargin: 24; anchors.verticalCenter: hub.verticalCenter }
         Sat {
             label: "Bluetooth"; value: root.btEnabled ? "On" : "Off"; delay: 420
             anchors.top: hub.bottom; anchors.topMargin: 24; anchors.horizontalCenter: hub.horizontalCenter
@@ -119,10 +131,11 @@ ColumnLayout {
             id: drow
             required property var modelData
             required property int index
-            property bool isConn: root.connectedAddrs.indexOf(modelData.address) !== -1   // NEW: any connected device
+            property bool isConn: root.connectedAddrs.indexOf(modelData.address) !== -1
+            property bool isSel: root.selDev && root.selDev.address === modelData.address
             Layout.fillWidth: true
             implicitHeight: 40; radius: 10
-            color: isConn ? Root.Theme.selection : (dHov.containsMouse ? Root.Theme.surfaceGlassHi : Root.Theme.surfaceVeryGlass)
+            color: isSel ? Root.Theme.selectionStrong : isConn ? Root.Theme.selection : (dHov.containsMouse ? Root.Theme.surfaceGlassHi : Root.Theme.surfaceVeryGlass)
             Behavior on color { ColorAnimation { duration: 120 } }
             opacity: 0; scale: 0.7; transformOrigin: Item.Center
             Component.onCompleted: dAnim.start()
@@ -150,7 +163,7 @@ ColumnLayout {
     Text { visible: !root.btEnabled; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: "Bluetooth is off"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 12 }
 
     Connections { target: checkOut; function onStreamFinished() { root.btEnabled = checkOut.text.includes("Powered: yes"); if (root.btEnabled) root.refresh() } }
-    Connections { target: toggleOut; function onStreamFinished() { root.btEnabled = !root.btEnabled; if (root.btEnabled) Qt.callLater(root.refresh); else { root.devices = []; root.connectedAddrs = []; root.connName = ""; root.connAddr = ""; root.battery = -1 } } }
+    Connections { target: toggleOut; function onStreamFinished() { root.btEnabled = !root.btEnabled; if (root.btEnabled) Qt.callLater(root.refresh); else { root.devices = []; root.connectedDevices = []; root.connectedAddrs = []; root.selName = ""; root.selBattery = -1 } } }
     Connections {
         target: devOut
         function onStreamFinished() {
@@ -166,27 +179,27 @@ ColumnLayout {
     Connections {
         target: connListOut
         function onStreamFinished() {
-            const addrs = []
+            const devs = [], addrs = []
             for (const line of connListOut.text.trim().split("\n")) {
                 if (!line.startsWith("Device ")) continue
-                addrs.push(line.replace("Device ", "").split(" ")[0])
+                const p = line.replace("Device ", "").split(" ")
+                devs.push({ address: p[0], name: p.slice(1).join(" ") }); addrs.push(p[0])
             }
-            root.connectedAddrs = addrs
+            root.connectedDevices = devs; root.connectedAddrs = addrs
+            if (root.selIdx >= devs.length) root.selIdx = 0
+            root.queryInfo()
         }
     }
     Connections {
         target: infoOut
         function onStreamFinished() {
-            let connected = false
+            let name = "", batt = -1
             for (const line of infoOut.text.split("\n")) {
                 const t = line.trim()
-                if (t.startsWith("Device ")) root.connAddr = t.split(" ")[1]
-                else if (t.startsWith("Name:")) root.connName = t.substring(5).trim()
-                else if (t.includes("Connected: yes")) connected = true
-                else if (t.includes("Connected: no")) connected = false
-                else if (t.includes("Battery Percentage")) { const m = t.match(/\((\d+)\)/); if (m) root.battery = parseInt(m[1]) }
+                if (t.startsWith("Name:")) name = t.substring(5).trim()
+                else if (t.includes("Battery Percentage")) { const m = t.match(/\((\d+)\)/); if (m) batt = parseInt(m[1]) }
             }
-            if (!connected) { root.connName = ""; root.connAddr = ""; root.battery = -1 }
+            root.selName = name; root.selBattery = batt
         }
     }
     Connections { target: actOut; function onStreamFinished() { Qt.callLater(root.refresh) } }

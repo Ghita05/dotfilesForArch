@@ -13,3 +13,5 @@ CalendarPopup 1.0 CalendarPopup.qml
 VolumePopup 1.0 VolumePopup.qml
 NetworkPopup 1.0 NetworkPopup.qml
 BatteryPopup 1.0 BatteryPopup.qml
+Reminders 1.0 Reminders.qml
+RemindersPopup 1.0 RemindersPopup.qml

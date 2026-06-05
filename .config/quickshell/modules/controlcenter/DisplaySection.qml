@@ -8,30 +8,62 @@ ColumnLayout {
     id: root
     spacing: 14
     property var monitors: []
-    readonly property int activeCount: {
-        let c = 0; for (const m of monitors) if (!m.disabled) c++; return c
-    }
+    property string status: ""
+    readonly property int activeCount: { let c = 0; for (const m of monitors) if (!m.disabled) c++; return c }
 
     Process {
         id: probe
-        command: ["hyprctl", "monitors", "-j"]
+        command: ["sh", "-c", "hyprctl monitors -j; echo '@@@'; hyprctl monitors all -j"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
-                    root.monitors = JSON.parse(text).map(m => ({
+                    const parts = text.split("@@@")
+                    const live = JSON.parse(parts[0])
+                    const all  = parts.length > 1 ? JSON.parse(parts[1]) : live
+                    const liveNames = {}
+                    const out = live.map(m => { liveNames[m.name] = true; return {
                         name: m.name, desc: m.description || "",
                         w: m.width, h: m.height, hz: m.refreshRate, scale: m.scale,
                         x: m.x, y: m.y, transform: m.transform || 0,
-                        disabled: m.disabled === true, focused: m.focused === true,
+                        disabled: false, focused: m.focused === true,
                         modes: m.availableModes || []
-                    }))
+                    }})
+                    // disabled monitors only appear in "all"
+                    for (const m of all) {
+                        if (liveNames[m.name]) continue
+                        out.push({
+                            name: m.name, desc: m.description || "",
+                            w: m.width, h: m.height, hz: m.refreshRate, scale: m.scale,
+                            x: m.x, y: m.y, transform: m.transform || 0,
+                            disabled: true, focused: false,
+                            modes: m.availableModes || []
+                        })
+                    }
+                    root.monitors = out
                 } catch (e) { root.monitors = [] }
             }
         }
     }
-    Process { id: applyProc }
+    Process {
+        id: applyProc
+        stdout: StdioCollector { id: applyOut }
+        stderr: StdioCollector { id: applyErr }
+    }
+    Connections {
+        target: applyErr
+        function onStreamFinished() {
+            const e = applyErr.text.trim()
+            root.status = e.length ? e : "Applied \u2713"
+            statusClear.restart()
+        }
+    }
+    Timer { id: statusClear; interval: 3000; onTriggered: root.status = "" }
+
     function refresh() { probe.running = true }
-    function apply(arg) { applyProc.command = ["hyprctl", "keyword", "monitor", arg]; applyProc.running = true; Qt.callLater(root.refresh) }
+    // apply via wlr-randr (parser-independent). args is an array of flags.
+    function apply(args) { applyProc.command = ["wlr-randr"].concat(args); applyProc.running = true; Qt.callLater(root.refresh) }
+    function transformName(t) { return ["normal", "90", "180", "270"][t] || "normal" }
+
     Component.onCompleted: refresh()
     Timer { interval: 4000; running: true; repeat: true; onTriggered: root.refresh() }
 
@@ -43,6 +75,14 @@ ColumnLayout {
             font.family: Root.Theme.fontFamily; font.pixelSize: 14
             MouseArea { id: refHov; anchors.fill: parent; anchors.margins: -6; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.refresh() }
         }
+    }
+
+    Text {
+        visible: root.status.length > 0
+        Layout.fillWidth: true; wrapMode: Text.WordWrap
+        text: root.status
+        color: root.status.indexOf("\u2713") !== -1 ? Root.Theme.good : Root.Theme.crit
+        font.family: Root.Theme.fontFamily; font.pixelSize: 11
     }
 
     Repeater {
@@ -66,7 +106,14 @@ ColumnLayout {
 
             function uniqRes() { const seen = {}, out = []; for (const m of modelData.modes) { const r = m.split("@")[0]; if (!seen[r]) { seen[r] = 1; out.push(r) } } return out }
             function hzFor(res) { const out = []; for (const m of modelData.modes) { const p = m.split("@"); if (p[0] !== res) continue; const hz = parseFloat(p[1]); if (!isNaN(hz)) out.push(hz) } return out.sort((a, b) => b - a) }
-            function commit() { root.apply(modelData.name + "," + selRes + "@" + Math.round(selHz) + "," + modelData.x + "x" + modelData.y + "," + selScale.toFixed(2) + ",transform," + selTransform) }
+            function commit() {
+                root.apply(["--output", modelData.name,
+                            "--mode", selRes + "@" + Math.round(selHz),
+                            "--scale", selScale.toFixed(2),
+                            "--transform", root.transformName(selTransform)])
+            }
+
+            opacity: 0; scale: 0.8; transformOrigin: Item.Center
             Component.onCompleted: cardAnim.start()
             SequentialAnimation {
                 id: cardAnim
@@ -108,7 +155,9 @@ ColumnLayout {
                         Rectangle { width: 16; height: 16; radius: 8; color: Root.Theme.text; anchors.verticalCenter: parent.verticalCenter; x: !card.modelData.disabled ? parent.width - width - 3 : 3; Behavior on x { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } } }
                         MouseArea {
                             anchors.fill: parent; cursorShape: Qt.PointingHandCursor; enabled: card.canDisable
-                            onClicked: card.modelData.disabled ? root.apply(card.modelData.name + ",preferred,auto,1") : root.apply(card.modelData.name + ",disable")
+                            onClicked: card.modelData.disabled
+                                ? root.apply(["--output", card.modelData.name, "--on"])
+                                : root.apply(["--output", card.modelData.name, "--off"])
                         }
                     }
                 }

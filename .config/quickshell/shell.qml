@@ -5,6 +5,7 @@ import "modules/controlcenter"
 import "modules/bar"
 import "modules/launcher"
 import "modules/notifications"
+import "modules/powermenu"
 
 ShellRoot {
     id: root
@@ -33,4 +34,5 @@ ShellRoot {
     BarPopups {}
     Launcher{}
     Notifications{}
+    PowerMenu {}
 }
