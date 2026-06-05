@@ -6,8 +6,10 @@ Volume 1.0 Volume.qml
 Network 1.0 Network.qml
 Battery 1.0 Battery.qml
 SysTray 1.0 SysTray.qml
+Media 1.0 Media.qml
 BarPopups 1.0 BarPopups.qml
+MediaPopup 1.0 MediaPopup.qml
+CalendarPopup 1.0 CalendarPopup.qml
 VolumePopup 1.0 VolumePopup.qml
 NetworkPopup 1.0 NetworkPopup.qml
 BatteryPopup 1.0 BatteryPopup.qml
-CalendarPopup 1.0 CalendarPopup.qml

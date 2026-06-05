@@ -13,15 +13,17 @@ ColumnLayout {
     property string connAddr: ""
     property int battery: -1
     property var devices: []
+    property var connectedAddrs: []   // NEW: every connected device
 
     Process { id: checkProc; command: ["bluetoothctl", "show"]; stdout: StdioCollector { id: checkOut } }
     Process { id: toggleProc; stdout: StdioCollector { id: toggleOut } }
     Process { id: devProc; command: ["bluetoothctl", "devices"]; stdout: StdioCollector { id: devOut } }
+    Process { id: connListProc; command: ["bluetoothctl", "devices", "Connected"]; stdout: StdioCollector { id: connListOut } }  // NEW
     Process { id: infoProc; command: ["bluetoothctl", "info"]; stdout: StdioCollector { id: infoOut } }
     Process { id: actProc; stdout: StdioCollector { id: actOut } }
 
-    function refresh() { devProc.running = true; Qt.callLater(() => infoProc.running = true) }
-    function scan() { Quickshell.execDetached(["sh", "-c", "bluetoothctl --timeout 6 scan on"]) }
+    function refresh() { devProc.running = true; Qt.callLater(() => { connListProc.running = true; infoProc.running = true }) }
+    function scan() { Quickshell.execDetached(["sh", "-c", "bluetoothctl --timeout 6 scan on"]); actProc.command = ["sh", "-c", "bluetoothctl --timeout 6 scan on"]; actProc.running = true }
     Component.onCompleted: checkProc.running = true
     Timer { interval: 5000; running: root.btEnabled; repeat: true; onTriggered: root.refresh() }
 
@@ -33,9 +35,7 @@ ColumnLayout {
             id: ring
             anchors.centerIn: parent
             width: 240; height: 240; radius: 120
-            color: "transparent"
-            border.color: Root.Theme.border
-            border.width: 1
+            color: "transparent"; border.color: Root.Theme.border; border.width: 1
             opacity: 0; scale: 0.6
             Component.onCompleted: ringAnim.start()
             ParallelAnimation {
@@ -44,16 +44,13 @@ ColumnLayout {
                 NumberAnimation { target: ring; property: "scale"; to: 1; duration: 600; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
             }
         }
-
         Rectangle {
             id: hub
             anchors.centerIn: parent
             width: 130; height: 130; radius: 65
-            color: root.connName !== "" ? Root.Theme.selection : Root.Theme.surfaceGlassHi
-            border.color: root.connName !== "" ? Root.Theme.selectionStrong : Root.Theme.border
-            border.width: 1
+            color: root.connectedAddrs.length > 0 ? Root.Theme.selection : Root.Theme.surfaceGlassHi
+            border.color: root.connectedAddrs.length > 0 ? Root.Theme.selectionStrong : Root.Theme.border; border.width: 1
             Behavior on color { ColorAnimation { duration: 200 } }
-
             opacity: 0; scale: 0.5; transformOrigin: Item.Center
             Component.onCompleted: hubAnim.start()
             ParallelAnimation {
@@ -61,29 +58,11 @@ ColumnLayout {
                 NumberAnimation { target: hub; property: "opacity"; to: 1; duration: 260; easing.type: Easing.OutCubic }
                 NumberAnimation { target: hub; property: "scale"; to: 1; duration: 460; easing.type: Easing.OutBack; easing.overshoot: 1.4 }
             }
-
             Column {
-                anchors.centerIn: parent
-                spacing: 3
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: "\uf025"
-                    color: root.connName !== "" ? Root.Theme.text : Root.Theme.textDim
-                    font.family: Root.Theme.fontFamily; font.pixelSize: 26
-                }
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: 110; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
-                    text: root.connName !== "" ? root.connName : "Not connected"
-                    color: Root.Theme.text; font.family: Root.Theme.fontFamily
-                    font.pixelSize: 11; font.weight: Font.Medium
-                }
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    visible: root.connName !== ""
-                    text: "Connected"
-                    color: Root.Theme.good; font.family: Root.Theme.fontFamily; font.pixelSize: 9
-                }
+                anchors.centerIn: parent; spacing: 3
+                Text { anchors.horizontalCenter: parent.horizontalCenter; text: "\uf025"; color: root.connectedAddrs.length > 0 ? Root.Theme.text : Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 26 }
+                Text { anchors.horizontalCenter: parent.horizontalCenter; width: 110; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight; text: root.connName !== "" ? root.connName : "Not connected"; color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Medium }
+                Text { anchors.horizontalCenter: parent.horizontalCenter; visible: root.connectedAddrs.length > 0; text: root.connectedAddrs.length > 1 ? root.connectedAddrs.length + " connected" : "Connected"; color: Root.Theme.good; font.family: Root.Theme.fontFamily; font.pixelSize: 9 }
             }
         }
 
@@ -97,7 +76,6 @@ ColumnLayout {
             color: satHov.containsMouse ? Root.Theme.surfaceGlassHi : Root.Theme.surfaceVeryGlass
             border.color: Root.Theme.border; border.width: 1
             Behavior on color { ColorAnimation { duration: 120 } }
-
             opacity: 0; scale: 0.5; transformOrigin: Item.Center
             Component.onCompleted: satAnim.start()
             SequentialAnimation {
@@ -117,37 +95,14 @@ ColumnLayout {
             MouseArea { id: satHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: sat.activated() }
         }
 
-        component Link: Rectangle {
-            id: link
-            property int delay: 0
-            color: Root.Theme.border
-            opacity: 0
-            Component.onCompleted: linkAnim.start()
-            SequentialAnimation {
-                id: linkAnim
-                PauseAnimation { duration: link.delay }
-                NumberAnimation { target: link; property: "opacity"; to: 0.6; duration: 200 }
-            }
-        }
+        Rectangle { width: 2; height: 24; anchors.bottom: hub.top; anchors.horizontalCenter: hub.horizontalCenter; color: Root.Theme.border; opacity: 0.6 }
+        Rectangle { width: 2; height: 24; anchors.top: hub.bottom; anchors.horizontalCenter: hub.horizontalCenter; color: Root.Theme.border; opacity: 0.6 }
+        Rectangle { width: 24; height: 2; anchors.right: hub.left; anchors.verticalCenter: hub.verticalCenter; color: Root.Theme.border; opacity: 0.6 }
+        Rectangle { width: 24; height: 2; anchors.left: hub.right; anchors.verticalCenter: hub.verticalCenter; color: Root.Theme.border; opacity: 0.6 }
 
-        Link { width: 2; height: 24; anchors.bottom: hub.top; anchors.horizontalCenter: hub.horizontalCenter; delay: 220 }
-        Link { width: 2; height: 24; anchors.top: hub.bottom; anchors.horizontalCenter: hub.horizontalCenter; delay: 340 }
-        Link { width: 24; height: 2; anchors.right: hub.left; anchors.verticalCenter: hub.verticalCenter; delay: 280 }
-        Link { width: 24; height: 2; anchors.left: hub.right; anchors.verticalCenter: hub.verticalCenter; delay: 400 }
-
-        Sat {
-            label: "Switch / Scan"; value: "Scan Devices"; delay: 240
-            anchors.bottom: hub.top; anchors.bottomMargin: 24; anchors.horizontalCenter: hub.horizontalCenter
-            onActivated: root.scan()
-        }
-        Sat {
-            label: "MAC Address"; value: root.connAddr !== "" ? root.connAddr : "—"; delay: 300
-            anchors.right: hub.left; anchors.rightMargin: 24; anchors.verticalCenter: hub.verticalCenter
-        }
-        Sat {
-            label: "Battery"; value: root.battery >= 0 ? root.battery + "%" : "—"; delay: 340
-            anchors.left: hub.right; anchors.leftMargin: 24; anchors.verticalCenter: hub.verticalCenter
-        }
+        Sat { label: "Switch / Scan"; value: "Scan Devices"; delay: 240; anchors.bottom: hub.top; anchors.bottomMargin: 24; anchors.horizontalCenter: hub.horizontalCenter; onActivated: root.scan() }
+        Sat { label: "MAC Address"; value: root.connAddr !== "" ? root.connAddr : "—"; delay: 300; anchors.right: hub.left; anchors.rightMargin: 24; anchors.verticalCenter: hub.verticalCenter }
+        Sat { label: "Battery"; value: root.battery >= 0 ? root.battery + "%" : "—"; delay: 340; anchors.left: hub.right; anchors.leftMargin: 24; anchors.verticalCenter: hub.verticalCenter }
         Sat {
             label: "Bluetooth"; value: root.btEnabled ? "On" : "Off"; delay: 420
             anchors.top: hub.bottom; anchors.topMargin: 24; anchors.horizontalCenter: hub.horizontalCenter
@@ -157,22 +112,18 @@ ColumnLayout {
         }
     }
 
-    Text {
-        visible: root.btEnabled && root.devices.length > 0
-        text: "Devices"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 11
-    }
+    Text { visible: root.btEnabled && root.devices.length > 0; text: "Devices"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 11 }
     Repeater {
         model: root.btEnabled ? root.devices : []
         delegate: Rectangle {
             id: drow
             required property var modelData
             required property int index
-            property bool isConn: modelData.address === root.connAddr
+            property bool isConn: root.connectedAddrs.indexOf(modelData.address) !== -1   // NEW: any connected device
             Layout.fillWidth: true
             implicitHeight: 40; radius: 10
             color: isConn ? Root.Theme.selection : (dHov.containsMouse ? Root.Theme.surfaceGlassHi : Root.Theme.surfaceVeryGlass)
             Behavior on color { ColorAnimation { duration: 120 } }
-
             opacity: 0; scale: 0.7; transformOrigin: Item.Center
             Component.onCompleted: dAnim.start()
             SequentialAnimation {
@@ -187,6 +138,7 @@ ColumnLayout {
                 anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 8
                 Text { text: drow.isConn ? "\uf00c" : ""; color: Root.Theme.accent; font.family: Root.Theme.fontFamily; font.pixelSize: 12; visible: drow.isConn }
                 Text { text: modelData.name || modelData.address; color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 12; Layout.fillWidth: true; elide: Text.ElideRight }
+                Text { text: drow.isConn ? "connected" : ""; color: Root.Theme.good; font.family: Root.Theme.fontFamily; font.pixelSize: 9; visible: drow.isConn }
             }
             MouseArea {
                 id: dHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -195,14 +147,10 @@ ColumnLayout {
         }
     }
 
-    Text {
-        visible: !root.btEnabled
-        Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter
-        text: "Bluetooth is off"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 12
-    }
+    Text { visible: !root.btEnabled; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: "Bluetooth is off"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 12 }
 
     Connections { target: checkOut; function onStreamFinished() { root.btEnabled = checkOut.text.includes("Powered: yes"); if (root.btEnabled) root.refresh() } }
-    Connections { target: toggleOut; function onStreamFinished() { root.btEnabled = !root.btEnabled; if (root.btEnabled) Qt.callLater(root.refresh); else { root.devices = []; root.connName = ""; root.connAddr = ""; root.battery = -1 } } }
+    Connections { target: toggleOut; function onStreamFinished() { root.btEnabled = !root.btEnabled; if (root.btEnabled) Qt.callLater(root.refresh); else { root.devices = []; root.connectedAddrs = []; root.connName = ""; root.connAddr = ""; root.battery = -1 } } }
     Connections {
         target: devOut
         function onStreamFinished() {
@@ -213,6 +161,17 @@ ColumnLayout {
                 list.push({ address: p[0], name: p.slice(1).join(" ") })
             }
             root.devices = list
+        }
+    }
+    Connections {
+        target: connListOut
+        function onStreamFinished() {
+            const addrs = []
+            for (const line of connListOut.text.trim().split("\n")) {
+                if (!line.startsWith("Device ")) continue
+                addrs.push(line.replace("Device ", "").split(" ")[0])
+            }
+            root.connectedAddrs = addrs
         }
     }
     Connections {

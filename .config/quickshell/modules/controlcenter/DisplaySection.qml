@@ -66,9 +66,7 @@ ColumnLayout {
 
             function uniqRes() { const seen = {}, out = []; for (const m of modelData.modes) { const r = m.split("@")[0]; if (!seen[r]) { seen[r] = 1; out.push(r) } } return out }
             function hzFor(res) { const out = []; for (const m of modelData.modes) { const p = m.split("@"); if (p[0] !== res) continue; const hz = parseFloat(p[1]); if (!isNaN(hz)) out.push(hz) } return out.sort((a, b) => b - a) }
-            function commit() { root.apply(modelData.name + "," + selRes + "@" + selHz.toFixed(2) + "," + modelData.x + "x" + modelData.y + "," + selScale.toFixed(2) + ",transform," + selTransform) }
-
-            opacity: 0; scale: 0.8; transformOrigin: Item.Center
+            function commit() { root.apply(modelData.name + "," + selRes + "@" + Math.round(selHz) + "," + modelData.x + "x" + modelData.y + "," + selScale.toFixed(2) + ",transform," + selTransform) }
             Component.onCompleted: cardAnim.start()
             SequentialAnimation {
                 id: cardAnim

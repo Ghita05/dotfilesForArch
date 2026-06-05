@@ -10,48 +10,42 @@ PanelWindow {
     margins { top: 8; left: 12; right: 12 }
     color: "transparent"
 
-    Component.onCompleted: {
-        if (this.WlrLayershell != null) this.WlrLayershell.layer = WlrLayer.Top
-    }
+    Component.onCompleted: { if (this.WlrLayershell != null) this.WlrLayershell.layer = WlrLayer.Top }
 
     Item {
         anchors.fill: parent
 
-        // Left pill — workspaces
         Rectangle {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            height: parent.height
-            radius: 16
-            color: Root.Theme.surfaceGlass
-            border.color: Root.Theme.border
-            border.width: 1
+            height: parent.height; radius: 16
+            color: Root.Theme.surfaceGlass; border.color: Root.Theme.border; border.width: 1
             width: workspacesRow.implicitWidth + 16
             Workspaces { id: workspacesRow; anchors.centerIn: parent }
         }
 
-        // Center pill — clock
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
-            height: parent.height
-            radius: 16
-            color: Root.Theme.surfaceGlass
-            border.color: Root.Theme.border
-            border.width: 1
-            width: clock.implicitWidth + 32
-            Clock { id: clock; anchors.centerIn: parent }
+            height: parent.height; radius: 16
+            color: Root.Theme.surfaceGlass; border.color: Root.Theme.border; border.width: 1
+            width: centerRow.implicitWidth + 32
+            Behavior on width { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+            Row {
+                id: centerRow
+                anchors.centerIn: parent
+                spacing: 12
+                Media { id: media; anchors.verticalCenter: parent.verticalCenter }   // skipped by Row when not visible
+                Rectangle { width: 1; height: 16; color: Root.Theme.border; visible: media.visible; anchors.verticalCenter: parent.verticalCenter }
+                Clock { id: clock; anchors.verticalCenter: parent.verticalCenter }
+            }
         }
 
-        // Right pill — volume / network / battery / tray
         Rectangle {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            height: parent.height
-            radius: 16
-            color: Root.Theme.surfaceGlass
-            border.color: Root.Theme.border
-            border.width: 1
+            height: parent.height; radius: 16
+            color: Root.Theme.surfaceGlass; border.color: Root.Theme.border; border.width: 1
             width: rightRow.implicitWidth + 24
             Row {
                 id: rightRow

@@ -36,18 +36,17 @@ ColumnLayout {
         }
     }
 
-    // all mutations run through a real Process (execDetached doesn't fire here)
     Process { id: act }
     function run(cmd) { if (act.running) act.running = false; act.command = cmd; act.running = true }
 
+    // FIX: switch default via the service setter (id-independent), not wpctl set-default
     function cycleSink() {
         if (root.sinks.length < 2) return
         const i = root.sinks.findIndex(s => s.id === (root.sink ? root.sink.id : -1))
         const n = root.sinks[(i + 1) % root.sinks.length]
-        if (n) root.run(["wpctl", "set-default", String(n.id)])
+        if (n) Pipewire.preferredDefaultAudioSink = n
     }
 
-    // ---------- radial dial ----------
     Item {
         Layout.fillWidth: true
         Layout.preferredHeight: 300
@@ -65,7 +64,6 @@ ColumnLayout {
                 NumberAnimation { target: ring; property: "scale"; to: 1; duration: 600; easing.type: Easing.OutBack; easing.overshoot: 1.2 }
             }
         }
-
         Item {
             id: hub
             anchors.centerIn: parent
@@ -98,18 +96,8 @@ ColumnLayout {
             }
             Column {
                 anchors.centerIn: parent; spacing: 2
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: dial.muted ? "\uf026" : "\uf028"
-                    color: dial.muted ? Root.Theme.textDim : Root.Theme.accent
-                    font.family: Root.Theme.fontFamily; font.pixelSize: 20
-                }
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: dial.muted ? "muted" : Math.round(dial.value * 100) + "%"
-                    color: Root.Theme.text; font.family: Root.Theme.fontFamily
-                    font.pixelSize: 18; font.weight: Font.Bold
-                }
+                Text { anchors.horizontalCenter: parent.horizontalCenter; text: dial.muted ? "\uf026" : "\uf028"; color: dial.muted ? Root.Theme.textDim : Root.Theme.accent; font.family: Root.Theme.fontFamily; font.pixelSize: 20 }
+                Text { anchors.horizontalCenter: parent.horizontalCenter; text: dial.muted ? "muted" : Math.round(dial.value * 100) + "%"; color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 18; font.weight: Font.Bold }
             }
             MouseArea {
                 anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -118,7 +106,6 @@ ColumnLayout {
             }
         }
 
-        // round − / + buttons (left / right)
         component StepBtn: Rectangle {
             id: sb
             property string glyph
@@ -174,39 +161,17 @@ ColumnLayout {
         Rectangle { width: 2; height: 20; anchors.bottom: hub.top; anchors.horizontalCenter: hub.horizontalCenter; color: Root.Theme.border; opacity: 0.6 }
         Rectangle { width: 2; height: 20; anchors.top: hub.bottom; anchors.horizontalCenter: hub.horizontalCenter; color: Root.Theme.border; opacity: 0.6 }
 
-        Sat {
-            label: "Output · tap to switch"
-            value: root.sink ? (root.sink.description || root.sink.name) : "—"
-            delay: 240
-            anchors.bottom: hub.top; anchors.bottomMargin: 20; anchors.horizontalCenter: hub.horizontalCenter
-            onActivated: root.cycleSink()
-        }
-        StepBtn {
-            glyph: "\uf068"   // minus
-            delay: 300
-            anchors.right: hub.left; anchors.rightMargin: 16; anchors.verticalCenter: hub.verticalCenter
-            onActivated: root.run(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"])
-        }
-        StepBtn {
-            glyph: "\uf067"   // plus
-            delay: 340
-            anchors.left: hub.right; anchors.leftMargin: 16; anchors.verticalCenter: hub.verticalCenter
-            onActivated: root.run(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%+"])
-        }
-        Sat {
-            label: root.srcAu && root.srcAu.muted ? "Mic · muted" : "Mic · tap to mute"
-            value: "\uf130  " + (root.srcAu ? Math.round(root.srcAu.volume * 100) + "%" : "—")
-            delay: 400
-            anchors.top: hub.bottom; anchors.topMargin: 20; anchors.horizontalCenter: hub.horizontalCenter
-            onActivated: root.run(["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"])
-        }
+        Sat { label: "Output · tap to switch"; value: root.sink ? (root.sink.description || root.sink.name) : "—"; delay: 240; anchors.bottom: hub.top; anchors.bottomMargin: 20; anchors.horizontalCenter: hub.horizontalCenter; onActivated: root.cycleSink() }
+        StepBtn { glyph: "\uf068"; delay: 300; anchors.right: hub.left; anchors.rightMargin: 16; anchors.verticalCenter: hub.verticalCenter; onActivated: root.run(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%-"]) }
+        StepBtn { glyph: "\uf067"; delay: 340; anchors.left: hub.right; anchors.leftMargin: 16; anchors.verticalCenter: hub.verticalCenter; onActivated: root.run(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", "5%+"]) }
+        Sat { label: root.srcAu && root.srcAu.muted ? "Mic · muted" : "Mic · tap to mute"; value: "\uf130  " + (root.srcAu ? Math.round(root.srcAu.volume * 100) + "%" : "—"); delay: 400; anchors.top: hub.bottom; anchors.topMargin: 20; anchors.horizontalCenter: hub.horizontalCenter; onActivated: root.run(["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]) }
     }
 
-    // ---------- device lists ----------
     component DevList: ColumnLayout {
         id: dl
         property var items: []
         property var current
+        property bool forSink: true
         property int delay: 0
         Layout.fillWidth: true
         spacing: 4
@@ -236,14 +201,18 @@ ColumnLayout {
                     Text { text: "\uf00c"; color: Root.Theme.accent; font.family: Root.Theme.fontFamily; font.pixelSize: 12; visible: drow.isCur }
                     Text { text: modelData.description || modelData.nickname || modelData.name || "device"; color: drow.isCur ? Root.Theme.text : Root.Theme.textGlassy; font.family: Root.Theme.fontFamily; font.pixelSize: 12; Layout.fillWidth: true; elide: Text.ElideRight }
                 }
-                MouseArea { id: dha; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.run(["wpctl", "set-default", String(modelData.id)]) }
+                // FIX: set default through the service, not wpctl id
+                MouseArea {
+                    id: dha; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: { if (dl.forSink) Pipewire.preferredDefaultAudioSink = modelData; else Pipewire.preferredDefaultAudioSource = modelData }
+                }
             }
         }
     }
 
     Text { text: "Output devices"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 11 }
-    DevList { items: root.sinks; current: root.sink; delay: 440 }
+    DevList { items: root.sinks; current: root.sink; forSink: true; delay: 440 }
     Rectangle { Layout.fillWidth: true; height: 1; color: Root.Theme.border; opacity: 0.5 }
     Text { text: "Input devices"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 11 }
-    DevList { items: root.sources; current: root.source; delay: 520 }
+    DevList { items: root.sources; current: root.source; forSink: false; delay: 520 }
 }
