@@ -6,6 +6,7 @@ import "modules/bar"
 import "modules/launcher"
 import "modules/notifications"
 import "modules/powermenu"
+import "modules/wallpaper"
 
 ShellRoot {
     id: root
@@ -35,4 +36,5 @@ ShellRoot {
     Launcher{}
     Notifications{}
     PowerMenu {}
+    WallpaperSwitcher {}
 }

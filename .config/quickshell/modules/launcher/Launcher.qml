@@ -10,8 +10,8 @@ import "../.." as Root
 PanelWindow {
     id: launcher
 
-    // ── SET YOUR PHOTO HERE (absolute path)
-    property string avatarPath: "/home/ghita/Downloads/menupfp.jpeg"   
+    // ── SET YOUR PHOTO HERE (absolute path). Leave "" for a person glyph. ──
+    property string avatarPath: "/home/ghita/Downloads/menupfp.jpeg"
 
     property bool open: false
     property bool _show: false
@@ -60,11 +60,9 @@ PanelWindow {
     readonly property int cols: Math.max(1, Math.floor(grid.width / grid.cellWidth))
     function move(d) { selectedIndex = Math.max(0, Math.min(results.length - 1, selectedIndex + d)); grid.positionViewAtIndex(selectedIndex, GridView.Contain) }
 
-    // upcoming reminders (read from PersistState)
     readonly property var upcoming: ((Root.PersistState.reminders || [])
         .filter(r => r.when > Date.now())
         .sort((a, b) => a.when - b.when))
-
     function relTime(ms) {
         const d = ms - Date.now()
         if (d <= 0) return "now"
@@ -75,10 +73,16 @@ PanelWindow {
         return "in " + Math.floor(h / 24) + "d"
     }
 
-    // media
+    // ── media (all players, swipeable) ──
     readonly property var mplayers: Mpris.players ? Mpris.players.values : []
-    readonly property var mp: mplayers.length ? mplayers[0] : null
+    property int mSel: 0
+    readonly property var mp: mplayers.length ? mplayers[Math.min(mSel, mplayers.length - 1)] : null
     readonly property bool mPlaying: mp && mp.playbackState === MprisPlaybackState.Playing
+    function cycleMedia(d) { const n = mplayers.length; if (n <= 1) return; mSel = (mSel + d + n) % n; mPos = 0 }
+    property real mPos: 0
+    readonly property real mLen: mp && mp.length ? mp.length : 0
+    Timer { interval: 500; running: launcher._show && launcher.mp; repeat: true; onTriggered: if (launcher.mp) launcher.mPos = launcher.mp.position }
+    function fmt(s) { s = Math.max(0, Math.floor(s)); const m = Math.floor(s / 60), ss = s % 60; return m + ":" + (ss < 10 ? "0" : "") + ss }
 
     IpcHandler {
         target: "launcher"
@@ -87,18 +91,16 @@ PanelWindow {
         function close(): void { launcher.hide() }
     }
 
-    // near-clear scrim — wallpaper stays visible, only a soft global dim
-    Rectangle {
+    // fully transparent catcher — wallpaper/windows show clean, no dim, no crop
+    MouseArea {
         anchors.fill: parent
-        color: "#7305060a"
+        onClicked: launcher.hide()
         opacity: launcher.open ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 240 } }
-        MouseArea { anchors.fill: parent; onClicked: launcher.hide() }
+        Behavior on opacity { NumberAnimation { duration: 200 } }
     }
 
-    // ── reusable glass card with a staggered bloom ──
     component GlassCard: Rectangle {
-        id: glasscard
+        id: glass
         property int delay: 0
         radius: 22
         color: Root.Theme.panel
@@ -107,17 +109,17 @@ PanelWindow {
         clip: true
         opacity: 0
         transformOrigin: Item.Center
+        MouseArea { anchors.fill: parent }   // swallow clicks so the card doesn't close the dash
         SequentialAnimation {
             running: launcher.open
-            PauseAnimation { duration: glasscard.delay }
+            PauseAnimation { duration: glass.delay }
             ParallelAnimation {
-                NumberAnimation { target: glasscard; property: "opacity"; from: 0; to: 1; duration: 260; easing.type: Easing.OutCubic }
-                NumberAnimation { target: glasscard; property: "scale";   from: 0.95; to: 1; duration: 440; easing.type: Easing.OutBack; easing.overshoot: 1.22 }
+                NumberAnimation { target: glass; property: "opacity"; from: 0; to: 1; duration: 260; easing.type: Easing.OutCubic }
+                NumberAnimation { target: glass; property: "scale";   from: 0.95; to: 1; duration: 440; easing.type: Easing.OutBack; easing.overshoot: 1.22 }
             }
         }
     }
 
-    // ── dashboard container ──
     Item {
         id: dash
         anchors.centerIn: parent
@@ -138,7 +140,6 @@ PanelWindow {
                 color: Root.Theme.text
                 font.family: Root.Theme.fontFamily; font.pixelSize: 17; font.weight: Font.Medium
             }
-
             Rectangle {
                 id: searchWrap
                 anchors { left: parent.left; right: parent.right; top: appHeader.bottom; leftMargin: 22; rightMargin: 22; topMargin: 14 }
@@ -147,17 +148,12 @@ PanelWindow {
                 border.color: searchField.activeFocus ? Root.Theme.selectionStrong : Root.Theme.border
                 border.width: 1
                 Behavior on border.color { ColorAnimation { duration: 150 } }
-                Text {
-                    id: sIcon
-                    anchors.left: parent.left; anchors.leftMargin: 14; anchors.verticalCenter: parent.verticalCenter
-                    text: "\uf002"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 13
-                }
+                Text { id: sIcon; anchors.left: parent.left; anchors.leftMargin: 14; anchors.verticalCenter: parent.verticalCenter; text: "\uf002"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 13 }
                 TextField {
                     id: searchField
                     anchors { left: sIcon.right; right: parent.right; verticalCenter: parent.verticalCenter; leftMargin: 12; rightMargin: 12 }
                     placeholderText: "Search applications…"
-                    color: Root.Theme.text
-                    placeholderTextColor: Root.Theme.textDim
+                    color: Root.Theme.text; placeholderTextColor: Root.Theme.textDim
                     font.family: Root.Theme.fontFamily; font.pixelSize: 14
                     background: null
                     Keys.onPressed: (e) => {
@@ -171,7 +167,6 @@ PanelWindow {
                     onTextChanged: launcher.selectedIndex = 0
                 }
             }
-
             GridView {
                 id: grid
                 anchors { left: parent.left; right: parent.right; top: searchWrap.bottom; bottom: parent.bottom; leftMargin: 14; rightMargin: 6; topMargin: 12; bottomMargin: 14 }
@@ -181,13 +176,11 @@ PanelWindow {
                 boundsBehavior: Flickable.StopAtBounds
                 cacheBuffer: 800
                 populate: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 220 } }
-
                 delegate: Item {
                     id: cell
                     required property var modelData
                     required property int index
                     width: grid.cellWidth; height: grid.cellHeight
-
                     Rectangle {
                         id: tile
                         anchors.fill: parent; anchors.margins: 6
@@ -208,40 +201,15 @@ PanelWindow {
                         Column {
                             anchors.centerIn: parent
                             spacing: 8
-                            Image {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                width: 46; height: 46; sourceSize.width: 46; sourceSize.height: 46
-                                source: Quickshell.iconPath(cell.modelData.icon, "application-x-executable")
-                                fillMode: Image.PreserveAspectFit
-                            }
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                width: tile.width - 16; horizontalAlignment: Text.AlignHCenter
-                                text: cell.modelData.name
-                                color: tile.selected ? Root.Theme.text : Root.Theme.textGlassy
-                                font.family: Root.Theme.fontFamily; font.pixelSize: 11
-                                elide: Text.ElideRight; maximumLineCount: 2; wrapMode: Text.WordWrap
-                            }
+                            Image { anchors.horizontalCenter: parent.horizontalCenter; width: 46; height: 46; sourceSize.width: 46; sourceSize.height: 46; source: Quickshell.iconPath(cell.modelData.icon, "application-x-executable"); fillMode: Image.PreserveAspectFit }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; width: tile.width - 16; horizontalAlignment: Text.AlignHCenter; text: cell.modelData.name; color: tile.selected ? Root.Theme.text : Root.Theme.textGlassy; font.family: Root.Theme.fontFamily; font.pixelSize: 11; elide: Text.ElideRight; maximumLineCount: 2; wrapMode: Text.WordWrap }
                         }
-                        Text {
-                            anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 8
-                            visible: searchField.text.length === 0 && Root.PersistState.frecency(cell.modelData.id) > 0
-                            text: "\uf005"; color: Root.Theme.accentSoft; font.family: Root.Theme.fontFamily; font.pixelSize: 9
-                        }
-                        MouseArea {
-                            id: tHov
-                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onEntered: launcher.selectedIndex = cell.index
-                            onClicked: launcher.launch(cell.modelData)
-                        }
+                        Text { anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 8; visible: searchField.text.length === 0 && Root.PersistState.frecency(cell.modelData.id) > 0; text: "\uf005"; color: Root.Theme.accentSoft; font.family: Root.Theme.fontFamily; font.pixelSize: 9 }
+                        MouseArea { id: tHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onEntered: launcher.selectedIndex = cell.index; onClicked: launcher.launch(cell.modelData) }
                     }
                 }
             }
-            Text {
-                anchors.centerIn: grid
-                visible: launcher.results.length === 0
-                text: "No matches"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 13
-            }
+            Text { anchors.centerIn: grid; visible: launcher.results.length === 0; text: "No matches"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 13 }
         }
 
         // ===== RIGHT column =====
@@ -249,19 +217,13 @@ PanelWindow {
             id: rightCol
             anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
             width: 300
-
-            // power tiles
             GlassCard {
                 id: powerCard
                 anchors { left: parent.left; right: parent.right; top: parent.top }
                 height: 250
                 delay: 120
-
                 Column {
-                    anchors.fill: parent
-                    anchors.margins: 16
-                    spacing: 10
-
+                    anchors.fill: parent; anchors.margins: 16; spacing: 10
                     component PowerTile: Rectangle {
                         id: pt
                         property string glyph
@@ -275,32 +237,33 @@ PanelWindow {
                         Behavior on color { ColorAnimation { duration: 130 } }
                         Behavior on border.color { ColorAnimation { duration: 130 } }
                         Row {
-                            anchors.left: parent.left; anchors.leftMargin: 16; anchors.verticalCenter: parent.verticalCenter
-                            spacing: 14
+                            anchors.left: parent.left; anchors.leftMargin: 16; anchors.verticalCenter: parent.verticalCenter; spacing: 14
                             Text { anchors.verticalCenter: parent.verticalCenter; text: pt.glyph; color: ptHov.containsMouse ? Root.Theme.text : pt.tint; font.family: Root.Theme.fontFamily; font.pixelSize: 16 }
                             Text { anchors.verticalCenter: parent.verticalCenter; text: pt.label; color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 13 }
                         }
                         MouseArea { id: ptHov; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: launcher.run(pt.cmd) }
                     }
-
                     PowerTile { glyph: "\uf023"; label: "Lock";     cmd: "hyprlock";              tint: Root.Theme.accentSoft }
                     PowerTile { glyph: "\uf186"; label: "Sleep";    cmd: "loginctl lock-session"; tint: Root.Theme.accentSoft }
                     PowerTile { glyph: "\uf021"; label: "Reboot";   cmd: "systemctl reboot";      tint: Root.Theme.warn }
                     PowerTile { glyph: "\uf011"; label: "Shutdown"; cmd: "systemctl poweroff";    tint: Root.Theme.crit }
                 }
             }
-
-            // reminders
             GlassCard {
                 id: remCard
                 anchors { left: parent.left; right: parent.right; top: powerCard.bottom; bottom: parent.bottom; topMargin: 16 }
                 delay: 160
-
                 Text {
                     id: remHeader
-                    anchors { left: parent.left; top: parent.top; leftMargin: 18; topMargin: 16 }
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.leftMargin: 18
+                    anchors.topMargin: 16
                     text: "\uf0f3   Reminders"
-                    color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium
+                    color: Root.Theme.text
+                    font.family: Root.Theme.fontFamily
+                    font.pixelSize: 14
+                    font.weight: Font.Medium
                 }
                 ListView {
                     anchors { left: parent.left; right: parent.right; top: remHeader.bottom; bottom: parent.bottom; margins: 14; topMargin: 12 }
@@ -310,14 +273,26 @@ PanelWindow {
                         required property var modelData
                         width: ListView.view.width; height: 44; radius: 11
                         color: Root.Theme.surfaceVeryGlass
-                        Row {
-                            anchors.left: parent.left; anchors.leftMargin: 12; anchors.right: delBtn.left; anchors.verticalCenter: parent.verticalCenter
-                            spacing: 2
-                            Column {
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 1
-                                Text { text: modelData.text; color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 12; elide: Text.ElideRight; width: remCard.width - 90 }
-                                Text { text: launcher.relTime(modelData.when); color: Root.Theme.accentSoft; font.family: Root.Theme.fontFamily; font.pixelSize: 10 }
+                        Column {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 12
+                            anchors.right: delBtn.left
+                            anchors.rightMargin: 8
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 1
+                            Text {
+                                text: modelData.text
+                                color: Root.Theme.text
+                                font.family: Root.Theme.fontFamily
+                                font.pixelSize: 12
+                                elide: Text.ElideRight
+                                width: parent.width
+                            }
+                            Text {
+                                text: launcher.relTime(modelData.when)
+                                color: Root.Theme.accentSoft
+                                font.family: Root.Theme.fontFamily
+                                font.pixelSize: 10
                             }
                         }
                         Text {
@@ -325,16 +300,11 @@ PanelWindow {
                             anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
                             text: "\uf00d"; color: dHov.containsMouse ? Root.Theme.crit : Root.Theme.textDim
                             font.family: Root.Theme.fontFamily; font.pixelSize: 12
-                            MouseArea { id: dHov; anchors.fill: parent; anchors.margins: -8; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                onClicked: Root.PersistState.removeReminder(modelData.id) }
+                            MouseArea { id: dHov; anchors.fill: parent; anchors.margins: -8; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Root.PersistState.removeReminder(modelData.id) }
                         }
                     }
                 }
-                Text {
-                    anchors.centerIn: parent
-                    visible: launcher.upcoming.length === 0
-                    text: "No upcoming reminders"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 12
-                }
+                Text { anchors.centerIn: parent; visible: launcher.upcoming.length === 0; text: "No upcoming reminders"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 12 }
             }
         }
 
@@ -343,55 +313,27 @@ PanelWindow {
             id: centerCol
             anchors { left: appCard.right; right: rightCol.left; top: parent.top; bottom: parent.bottom; leftMargin: 16; rightMargin: 16 }
 
-            // clock + avatar hero
             GlassCard {
                 id: clockCard
                 anchors { left: parent.left; right: parent.right; top: parent.top }
                 height: 320
                 delay: 80
-
                 Column {
-                    anchors.centerIn: parent
-                    spacing: 14
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: Qt.formatDateTime(clockTick.now, "HH:mm")
-                        color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 64; font.weight: Font.Bold
-                    }
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: Qt.formatDateTime(clockTick.now, "dddd, d MMMM")
-                        color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 14
-                    }
+                    anchors.centerIn: parent; spacing: 14
+                    Text { anchors.horizontalCenter: parent.horizontalCenter; text: Qt.formatDateTime(clockTick.now, "HH:mm"); color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 64; font.weight: Font.Bold }
+                    Text { anchors.horizontalCenter: parent.horizontalCenter; text: Qt.formatDateTime(clockTick.now, "dddd, d MMMM"); color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 14 }
                     ClippingRectangle {
                         anchors.horizontalCenter: parent.horizontalCenter
                         width: 92; height: 92; radius: width / 2
-                        color: Root.Theme.surfaceVeryGlass
-                        border.color: Root.Theme.border; border.width: 1
-                        Image {
-                            id: avatarImg
-                            anchors.fill: parent
-                            source: launcher.avatarPath !== "" ? "file://" + launcher.avatarPath : ""
-                            fillMode: Image.PreserveAspectCrop
-                            visible: status === Image.Ready
-                        }
-                        Text {
-                            anchors.centerIn: parent
-                            visible: avatarImg.status !== Image.Ready
-                            text: "\uf007"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 34
-                        }
+                        color: Root.Theme.surfaceVeryGlass; border.color: Root.Theme.border; border.width: 1
+                        Image { id: avatarImg; anchors.fill: parent; source: launcher.avatarPath !== "" ? "file://" + launcher.avatarPath : ""; fillMode: Image.PreserveAspectCrop; visible: status === Image.Ready }
+                        Text { anchors.centerIn: parent; visible: avatarImg.status !== Image.Ready; text: "\uf007"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 34 }
                     }
                     Row {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        spacing: 7
+                        anchors.horizontalCenter: parent.horizontalCenter; spacing: 7
                         Repeater {
                             model: 7
-                            delegate: Rectangle {
-                                required property int index
-                                width: 6; height: 6; radius: 3
-                                color: Root.Theme.accentSoft
-                                opacity: 0.35 + 0.4 * Math.abs(Math.sin(dotPhase.v + index))
-                            }
+                            delegate: Rectangle { required property int index; width: 6; height: 6; radius: 3; color: Root.Theme.accentSoft; opacity: 0.35 + 0.4 * Math.abs(Math.sin(dotPhase.v + index)) }
                         }
                     }
                 }
@@ -400,47 +342,126 @@ PanelWindow {
             }
             Item { id: clockTick; property var now: new Date(); Timer { interval: 1000; running: launcher._show; repeat: true; onTriggered: clockTick.now = new Date() } }
 
-            // now-playing strip
+            // ── media: swipeable, click-to-raise ──
             GlassCard {
                 id: mediaCard
                 anchors { left: parent.left; right: parent.right; top: clockCard.bottom; bottom: parent.bottom; topMargin: 16 }
                 delay: 110
 
+                Text { anchors.centerIn: parent; visible: !launcher.mp; text: "Nothing playing"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 13 }
+
                 Item {
                     anchors.fill: parent
-                    anchors.margins: 18
+                    anchors.margins: 20
                     visible: launcher.mp
 
-                    ClippingRectangle {
-                        id: art
-                        anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
-                        width: 64; height: 64; radius: 14
-                        color: Root.Theme.surfaceVeryGlass
-                        Image { anchors.fill: parent; source: launcher.mp && launcher.mp.trackArtUrl ? launcher.mp.trackArtUrl : ""; fillMode: Image.PreserveAspectCrop; visible: status === Image.Ready }
-                        Text { anchors.centerIn: parent; visible: !launcher.mp || !launcher.mp.trackArtUrl; text: "\uf001"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 22 }
+                    Item {
+                        id: topRow
+                        anchors { left: parent.left; right: parent.right; top: parent.top }
+                        height: 110
+
+                        ClippingRectangle {
+                            id: dArt
+                            anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                            width: 104; height: 104; radius: 18
+                            color: Root.Theme.surfaceVeryGlass; border.color: Root.Theme.border; border.width: 1
+                            Image { anchors.fill: parent; source: launcher.mp && launcher.mp.trackArtUrl ? launcher.mp.trackArtUrl : ""; fillMode: Image.PreserveAspectCrop; visible: status === Image.Ready }
+                            Text { anchors.centerIn: parent; visible: !launcher.mp || !launcher.mp.trackArtUrl; text: "\uf001"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 30 }
+                        }
+                        Column {
+                            anchors { left: dArt.right; leftMargin: 18; right: parent.right; verticalCenter: parent.verticalCenter }
+                            spacing: 4
+                            Text { text: launcher.mp ? launcher.mp.trackTitle : ""; color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 16; font.weight: Font.Medium; elide: Text.ElideRight; width: parent.width }
+                            Text { text: launcher.mp ? launcher.mp.trackArtist : ""; color: Root.Theme.textGlassy; font.family: Root.Theme.fontFamily; font.pixelSize: 13; elide: Text.ElideRight; width: parent.width }
+                            Text { text: launcher.mp && launcher.mp.identity ? "from " + launcher.mp.identity : ""; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 11; elide: Text.ElideRight; width: parent.width }
+                        }
+
+                        // swipe = switch player; click = raise its window
+                        MouseArea {
+                            anchors.fill: parent
+                            preventStealing: true
+                            cursorShape: Qt.PointingHandCursor
+                            property real startX: 0
+                            property real startY: 0
+                            property bool dragging: false
+                            property bool fired: false
+                            property real accum: 0
+                            onPressed: (m) => { startX = m.x; startY = m.y; dragging = true; fired = false }
+                            onPositionChanged: (m) => {
+                                if (!dragging || fired) return
+                                const dx = m.x - startX, dy = m.y - startY
+                                if (Math.abs(dx) > 90 && Math.abs(dx) > Math.abs(dy) * 2 && launcher.mplayers.length > 1) {
+                                    launcher.cycleMedia(dx > 0 ? -1 : 1); fired = true
+                                }
+                            }
+                            onReleased: { if (!fired && launcher.mp && launcher.mp.canRaise) launcher.mp.raise(); dragging = false; fired = false }
+                            onWheel: (w) => { accum = accum * 0.6 + w.angleDelta.x; if (Math.abs(accum) > 300) { launcher.cycleMedia(accum > 0 ? -1 : 1); accum = 0 } }
+                        }
                     }
-                    Column {
-                        anchors.left: art.right; anchors.leftMargin: 14; anchors.right: ctrls.left; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter
-                        spacing: 3
-                        Text { text: launcher.mp ? launcher.mp.trackTitle : ""; color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 13; font.weight: Font.Medium; elide: Text.ElideRight; width: parent.width }
-                        Text { text: launcher.mp ? launcher.mp.trackArtist : ""; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 11; elide: Text.ElideRight; width: parent.width }
+
+                    Item {
+                        id: dScrub
+                        anchors { left: parent.left; right: parent.right; top: topRow.bottom; topMargin: 18 }
+                        height: 16
+                        readonly property real frac: launcher.mLen > 0 ? Math.max(0, Math.min(1, launcher.mPos / launcher.mLen)) : 0
+                        Rectangle {
+                            id: dTrk
+                            anchors.left: parent.left; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                            height: 5; radius: 3; color: Root.Theme.surfaceVeryGlass
+                            Rectangle { width: dTrk.width * dScrub.frac; height: parent.height; radius: parent.radius; color: Root.Theme.accent }
+                            Rectangle { x: dTrk.width * dScrub.frac - 6; anchors.verticalCenter: parent.verticalCenter; width: 12; height: 12; radius: 6; color: Root.Theme.accentSoft }
+                        }
+                        MouseArea {
+                            anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                            function seek(mx) { if (launcher.mp && launcher.mp.canSeek && launcher.mLen > 0) { const f = Math.max(0, Math.min(1, mx / width)); launcher.mp.position = f * launcher.mLen; launcher.mPos = f * launcher.mLen } }
+                            onPressed: (m) => seek(m.x)
+                            onPositionChanged: (m) => { if (pressed) seek(m.x) }
+                        }
+                    }
+                    Text {
+                        anchors.left: parent.left
+                        anchors.top: dScrub.bottom
+                        anchors.topMargin: 4
+                        text: launcher.fmt(launcher.mPos)
+                        color: Root.Theme.textDim
+                        font.family: Root.Theme.fontFamily
+                        font.pixelSize: 10
+                    }
+                    Text {
+                        anchors.right: parent.right
+                        anchors.top: dScrub.bottom
+                        anchors.topMargin: 4
+                        text: launcher.fmt(launcher.mLen)
+                        color: Root.Theme.textDim
+                        font.family: Root.Theme.fontFamily
+                        font.pixelSize: 10
                     }
                     Row {
-                        id: ctrls
-                        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                        spacing: 14
-                        Text { anchors.verticalCenter: parent.verticalCenter; text: "\uf048"; color: Root.Theme.textGlassy; font.family: Root.Theme.fontFamily; font.pixelSize: 15
-                            MouseArea { anchors.fill: parent; anchors.margins: -6; cursorShape: Qt.PointingHandCursor; onClicked: if (launcher.mp) launcher.mp.previous() } }
-                        Text { anchors.verticalCenter: parent.verticalCenter; text: launcher.mPlaying ? "\uf04c" : "\uf04b"; color: Root.Theme.accent; font.family: Root.Theme.fontFamily; font.pixelSize: 20
-                            MouseArea { anchors.fill: parent; anchors.margins: -6; cursorShape: Qt.PointingHandCursor; onClicked: if (launcher.mp) launcher.mp.togglePlaying() } }
-                        Text { anchors.verticalCenter: parent.verticalCenter; text: "\uf051"; color: Root.Theme.textGlassy; font.family: Root.Theme.fontFamily; font.pixelSize: 15
-                            MouseArea { anchors.fill: parent; anchors.margins: -6; cursorShape: Qt.PointingHandCursor; onClicked: if (launcher.mp) launcher.mp.next() } }
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.bottom: parent.bottom; anchors.bottomMargin: 14
+                        spacing: 30
+                        Text { text: "\uf048"; color: Root.Theme.textGlassy; font.family: Root.Theme.fontFamily; font.pixelSize: 18
+                            MouseArea { anchors.fill: parent; anchors.margins: -8; cursorShape: Qt.PointingHandCursor; onClicked: if (launcher.mp) launcher.mp.previous() } }
+                        Text { text: launcher.mPlaying ? "\uf04c" : "\uf04b"; color: Root.Theme.accent; font.family: Root.Theme.fontFamily; font.pixelSize: 26
+                            MouseArea { anchors.fill: parent; anchors.margins: -8; cursorShape: Qt.PointingHandCursor; onClicked: if (launcher.mp) launcher.mp.togglePlaying() } }
+                        Text { text: "\uf051"; color: Root.Theme.textGlassy; font.family: Root.Theme.fontFamily; font.pixelSize: 18
+                            MouseArea { anchors.fill: parent; anchors.margins: -8; cursorShape: Qt.PointingHandCursor; onClicked: if (launcher.mp) launcher.mp.next() } }
                     }
-                }
-                Text {
-                    anchors.centerIn: parent
-                    visible: !launcher.mp
-                    text: "Nothing playing"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 12
+                    Row {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.bottom: parent.bottom; anchors.bottomMargin: 2
+                        spacing: 6
+                        visible: launcher.mplayers.length > 1
+                        Repeater {
+                            model: launcher.mplayers.length
+                            delegate: Rectangle {
+                                required property int index
+                                width: 6; height: 6; radius: 3
+                                color: index === launcher.mSel ? Root.Theme.accent : Root.Theme.textDim
+                                MouseArea { anchors.fill: parent; anchors.margins: -4; cursorShape: Qt.PointingHandCursor; onClicked: launcher.mSel = index }
+                            }
+                        }
+                    }
                 }
             }
         }

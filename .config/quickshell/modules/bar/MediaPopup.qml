@@ -3,7 +3,6 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
 import Quickshell.Services.Mpris
-import QtQuick.Layouts
 import Quickshell.Services.UPower
 import "../.." as Root
 
@@ -20,13 +19,13 @@ Item {
     readonly property var mp: players.length ? players[Math.min(sel, players.length - 1)] : null
     readonly property bool playing: mp && mp.playbackState === MprisPlaybackState.Playing
 
+    function cyclePlayer(d) { const n = players.length; if (n <= 1) return; sel = (sel + d + n) % n; pos = 0 }
+
     property real pos: 0
     readonly property real len: mp && mp.length ? mp.length : 0
     Timer { interval: 500; running: root.shown && root.mp; repeat: true; onTriggered: if (root.mp) root.pos = root.mp.position }
-
     function fmt(s) { s = Math.max(0, Math.floor(s)); const m = Math.floor(s / 60), ss = s % 60; return m + ":" + (ss < 10 ? "0" : "") + ss }
 
-    // performance probe (only while that tab is open)
     property string perf: "—"
     Process {
         id: perfProc
@@ -53,7 +52,7 @@ Item {
         Behavior on scale { NumberAnimation { duration: 240; easing.type: Easing.OutBack; easing.overshoot: 1.1 } }
         MouseArea { anchors.fill: parent }
 
-        // ── tab header ──
+        // tab header
         Item {
             id: tabs
             anchors { left: parent.left; right: parent.right; top: parent.top; margins: 12 }
@@ -62,14 +61,10 @@ Item {
             property var labels: ["Dashboard", "Media", "Performance"]
             property int active: keys.indexOf(root.tab)
             readonly property real seg: width / 3
-
             Rectangle {
-                width: tabs.seg - 8; height: 26
-                x: tabs.active * tabs.seg + 4
-                anchors.verticalCenter: parent.verticalCenter
-                radius: 9
-                color: Root.Theme.selection
-                border.color: Root.Theme.selectionStrong; border.width: 1
+                width: tabs.seg - 8; height: 26; x: tabs.active * tabs.seg + 4
+                anchors.verticalCenter: parent.verticalCenter; radius: 9
+                color: Root.Theme.selection; border.color: Root.Theme.selectionStrong; border.width: 1
                 Behavior on x { NumberAnimation { duration: 260; easing.type: Easing.OutBack; easing.overshoot: 1.1 } }
             }
             Row {
@@ -79,20 +74,17 @@ Item {
                     delegate: Item {
                         required property int index
                         width: tabs.seg; height: parent.height
-                        Text {
-                            anchors.centerIn: parent
-                            text: tabs.labels[index]
+                        Text { anchors.centerIn: parent; text: tabs.labels[index]
                             color: index === tabs.active ? Root.Theme.text : Root.Theme.textDim
                             font.family: Root.Theme.fontFamily; font.pixelSize: 11
-                            Behavior on color { ColorAnimation { duration: 160 } }
-                        }
+                            Behavior on color { ColorAnimation { duration: 160 } } }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.tab = tabs.keys[index] }
                     }
                 }
             }
         }
 
-        // ── MEDIA tab ──
+        // ── MEDIA ──
         Item {
             anchors { left: parent.left; right: parent.right; top: tabs.bottom; bottom: parent.bottom; margins: 14 }
             visible: root.tab === "media"
@@ -104,7 +96,6 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top; anchors.topMargin: 8
                 width: 200; height: 200
-
                 Canvas {
                     id: ring
                     anchors.fill: parent
@@ -123,7 +114,6 @@ Item {
                     }
                 }
                 Timer { interval: 90; running: root.shown && root.playing && root.tab === "media"; repeat: true; onTriggered: { ring.phase++; ring.requestPaint() } }
-
                 ClippingRectangle {
                     anchors.centerIn: parent
                     width: 132; height: 132; radius: width / 2
@@ -149,7 +139,31 @@ Item {
                 color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 11; elide: Text.ElideRight
             }
 
-            // scrubber
+            // gesture zone over art+info: swipe = switch player, click = raise source
+            MouseArea {
+                anchors { left: parent.left; right: parent.right; top: parent.top; bottom: mArtist.bottom }
+                preventStealing: true
+                cursorShape: Qt.PointingHandCursor
+                property real startX: 0
+                property real startY: 0
+                property bool dragging: false
+                property bool fired: false
+                property real accum: 0
+                onPressed: (m) => { startX = m.x; startY = m.y; dragging = true; fired = false }
+                onPositionChanged: (m) => {
+                    if (!dragging || fired) return
+                    const dx = m.x - startX, dy = m.y - startY
+                    if (Math.abs(dx) > 90 && Math.abs(dx) > Math.abs(dy) * 2 && root.players.length > 1) {
+                        root.cyclePlayer(dx > 0 ? -1 : 1); fired = true
+                    }
+                }
+                onReleased: { if (!fired && root.mp && root.mp.canRaise) root.mp.raise(); dragging = false; fired = false }
+                onWheel: (w) => {
+                    accum = accum * 0.6 + w.angleDelta.x
+                    if (Math.abs(accum) > 300) { root.cyclePlayer(accum > 0 ? -1 : 1); accum = 0 }
+                }
+            }
+
             Item {
                 id: scrub
                 anchors { left: parent.left; right: parent.right; top: mArtist.bottom; topMargin: 14 }
@@ -169,14 +183,25 @@ Item {
                     onPositionChanged: (m) => { if (pressed) seek(m.x) }
                 }
             }
-            Row {
-                anchors { left: parent.left; right: parent.right; top: scrub.bottom; topMargin: 4 }
-                Text { text: root.fmt(root.pos); color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 10 }
-                Item { width: 1; height: 1; Layout.fillWidth: true }
-                Text { anchors.right: parent.right; text: root.fmt(root.len); color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 10 }
+            Text {
+                anchors.left: parent.left
+                anchors.top: scrub.bottom
+                anchors.topMargin: 4
+                text: root.fmt(root.pos)
+                color: Root.Theme.textDim
+                font.family: Root.Theme.fontFamily
+                font.pixelSize: 10
+            }
+            Text {
+                anchors.right: parent.right
+                anchors.top: scrub.bottom
+                anchors.topMargin: 4
+                text: root.fmt(root.len)
+                color: Root.Theme.textDim
+                font.family: Root.Theme.fontFamily
+                font.pixelSize: 10
             }
 
-            // transport
             Row {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom; anchors.bottomMargin: 6
@@ -188,8 +213,6 @@ Item {
                 Text { text: "\uf051"; color: Root.Theme.textGlassy; font.family: Root.Theme.fontFamily; font.pixelSize: 17
                     MouseArea { anchors.fill: parent; anchors.margins: -8; cursorShape: Qt.PointingHandCursor; onClicked: if (root.mp) root.mp.next() } }
             }
-
-            // player dots (only if >1 source)
             Row {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom; anchors.bottomMargin: -8
@@ -207,7 +230,7 @@ Item {
             }
         }
 
-        // ── DASHBOARD tab ──
+        // ── DASHBOARD ──
         Column {
             anchors { left: parent.left; right: parent.right; top: tabs.bottom; margins: 18; topMargin: 16 }
             visible: root.tab === "dashboard"
@@ -218,21 +241,16 @@ Item {
             Text { text: "\uf0f3   Next up"; color: Root.Theme.textGlassy; font.family: Root.Theme.fontFamily; font.pixelSize: 12 }
             Repeater {
                 model: ((Root.PersistState.reminders || []).filter(r => r.when > Date.now()).sort((a, b) => a.when - b.when)).slice(0, 3)
-                delegate: Text {
-                    required property var modelData
-                    text: "·  " + modelData.text
-                    color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 11; elide: Text.ElideRight; width: card.width - 36
-                }
+                delegate: Text { required property var modelData; text: "·  " + modelData.text; color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 11; elide: Text.ElideRight; width: card.width - 36 }
             }
         }
         Item { id: dTick; property var now: new Date(); Timer { interval: 1000; running: root.shown && root.tab === "dashboard"; repeat: true; onTriggered: dTick.now = new Date() } }
 
-        // ── PERFORMANCE tab ──
+        // ── PERFORMANCE ──
         Column {
             anchors { left: parent.left; right: parent.right; top: tabs.bottom; margins: 18; topMargin: 18 }
             visible: root.tab === "performance"
             spacing: 14
-
             component Stat: Item {
                 property string label
                 property real frac
@@ -247,24 +265,9 @@ Item {
                     Rectangle { width: parent.width * Math.max(0, Math.min(1, frac)); height: parent.height; radius: parent.radius; color: tint; Behavior on width { NumberAnimation { duration: 300 } } }
                 }
             }
-
-            Stat {
-                label: "Load (1m)"
-                value: root.perf.split("|")[0] || "—"
-                frac: Math.min(1, (parseFloat(root.perf.split("|")[0]) || 0) / 4)
-            }
-            Stat {
-                label: "Memory"
-                value: (root.perf.split("|")[1] || "0") + "%"
-                frac: (parseFloat(root.perf.split("|")[1]) || 0) / 100
-                tint: Root.Theme.warn
-            }
-            Stat {
-                label: "Battery"
-                value: root.battPct + "%"
-                frac: root.battPct / 100
-                tint: root.battPct <= 15 ? Root.Theme.crit : Root.Theme.good
-            }
+            Stat { label: "Load (1m)"; value: root.perf.split("|")[0] || "—"; frac: Math.min(1, (parseFloat(root.perf.split("|")[0]) || 0) / 4) }
+            Stat { label: "Memory"; value: (root.perf.split("|")[1] || "0") + "%"; frac: (parseFloat(root.perf.split("|")[1]) || 0) / 100; tint: Root.Theme.warn }
+            Stat { label: "Battery"; value: root.battPct + "%"; frac: root.battPct / 100; tint: root.battPct <= 15 ? Root.Theme.crit : Root.Theme.good }
         }
     }
 }
