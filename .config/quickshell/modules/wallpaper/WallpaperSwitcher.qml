@@ -10,7 +10,7 @@ PanelWindow {
     id: root
 
     // ── adjust if your username differs (FolderListModel needs an absolute path) ──
-    property string wallDir: "/home/ghita/.config/wallpapers"
+    property string wallDir: "/home/ghita/dotfiles/wallpapers"
     property string transitionType: "fade"
     property string currentPath: ""
 

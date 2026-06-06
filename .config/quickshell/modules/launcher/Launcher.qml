@@ -114,8 +114,8 @@ PanelWindow {
             running: launcher.open
             PauseAnimation { duration: glass.delay }
             ParallelAnimation {
-                NumberAnimation { target: glass; property: "opacity"; from: 0; to: 1; duration: 260; easing.type: Easing.OutCubic }
-                NumberAnimation { target: glass; property: "scale";   from: 0.95; to: 1; duration: 440; easing.type: Easing.OutBack; easing.overshoot: 1.22 }
+                NumberAnimation { target: glass; property: "opacity"; from: 0; to: 1; duration: 320; easing.type: Easing.OutCubic }
+                NumberAnimation { target: glass; property: "scale";   from: 0.97; to: 1; duration: 460; easing.type: Easing.OutCubic }
             }
         }
     }
@@ -125,6 +125,14 @@ PanelWindow {
         anchors.centerIn: parent
         width: Math.min(parent.width - 80, 1240)
         height: Math.min(parent.height - 80, 680)
+
+        // whole-dashboard glide+fade for a smooth, calm entrance
+        opacity: launcher.open ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+        transform: Translate {
+            y: launcher.open ? 0 : 28
+            Behavior on y { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+        }
 
         // ===== LEFT: app grid =====
         GlassCard {
@@ -342,7 +350,7 @@ PanelWindow {
             }
             Item { id: clockTick; property var now: new Date(); Timer { interval: 1000; running: launcher._show; repeat: true; onTriggered: clockTick.now = new Date() } }
 
-            // ── media: swipeable, click-to-raise ──
+            // ── media: popup-style (circular art + spectrum ring), swipeable, click-to-raise ──
             GlassCard {
                 id: mediaCard
                 anchors { left: parent.left; right: parent.right; top: clockCard.bottom; bottom: parent.bottom; topMargin: 16 }
@@ -352,28 +360,41 @@ PanelWindow {
 
                 Item {
                     anchors.fill: parent
-                    anchors.margins: 20
+                    anchors.margins: 16
                     visible: launcher.mp
 
                     Item {
-                        id: topRow
-                        anchors { left: parent.left; right: parent.right; top: parent.top }
-                        height: 110
+                        id: ringWrap
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.top: parent.top
+                        anchors.topMargin: 4
+                        width: 150; height: 150
+
+                        Canvas {
+                            id: ring
+                            anchors.fill: parent
+                            property real phase: 0
+                            onPaint: {
+                                const ctx = getContext("2d"); ctx.reset()
+                                const cx = width / 2, cy = height / 2, inner = 58, bars = 56
+                                for (let i = 0; i < bars; i++) {
+                                    const a = (i / bars) * Math.PI * 2
+                                    const amp = launcher.mPlaying ? (6 + 11 * Math.abs(Math.sin(phase * 0.06 + i * 0.5))) : 3
+                                    ctx.beginPath()
+                                    ctx.moveTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner)
+                                    ctx.lineTo(cx + Math.cos(a) * (inner + amp), cy + Math.sin(a) * (inner + amp))
+                                    ctx.lineWidth = 2; ctx.strokeStyle = "rgba(138,147,163,0.5)"; ctx.stroke()
+                                }
+                            }
+                        }
+                        Timer { interval: 90; running: launcher._show && launcher.mPlaying; repeat: true; onTriggered: { ring.phase++; ring.requestPaint() } }
 
                         ClippingRectangle {
-                            id: dArt
-                            anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
-                            width: 104; height: 104; radius: 18
+                            anchors.centerIn: parent
+                            width: 100; height: 100; radius: width / 2
                             color: Root.Theme.surfaceVeryGlass; border.color: Root.Theme.border; border.width: 1
                             Image { anchors.fill: parent; source: launcher.mp && launcher.mp.trackArtUrl ? launcher.mp.trackArtUrl : ""; fillMode: Image.PreserveAspectCrop; visible: status === Image.Ready }
-                            Text { anchors.centerIn: parent; visible: !launcher.mp || !launcher.mp.trackArtUrl; text: "\uf001"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 30 }
-                        }
-                        Column {
-                            anchors { left: dArt.right; leftMargin: 18; right: parent.right; verticalCenter: parent.verticalCenter }
-                            spacing: 4
-                            Text { text: launcher.mp ? launcher.mp.trackTitle : ""; color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 16; font.weight: Font.Medium; elide: Text.ElideRight; width: parent.width }
-                            Text { text: launcher.mp ? launcher.mp.trackArtist : ""; color: Root.Theme.textGlassy; font.family: Root.Theme.fontFamily; font.pixelSize: 13; elide: Text.ElideRight; width: parent.width }
-                            Text { text: launcher.mp && launcher.mp.identity ? "from " + launcher.mp.identity : ""; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 11; elide: Text.ElideRight; width: parent.width }
+                            Text { anchors.centerIn: parent; visible: !launcher.mp || !launcher.mp.trackArtUrl; text: "\uf001"; color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 28 }
                         }
 
                         // swipe = switch player; click = raise its window
@@ -390,7 +411,7 @@ PanelWindow {
                             onPositionChanged: (m) => {
                                 if (!dragging || fired) return
                                 const dx = m.x - startX, dy = m.y - startY
-                                if (Math.abs(dx) > 90 && Math.abs(dx) > Math.abs(dy) * 2 && launcher.mplayers.length > 1) {
+                                if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2 && launcher.mplayers.length > 1) {
                                     launcher.cycleMedia(dx > 0 ? -1 : 1); fired = true
                                 }
                             }
@@ -399,9 +420,24 @@ PanelWindow {
                         }
                     }
 
+                    Text {
+                        id: dTitle
+                        anchors { left: parent.left; right: parent.right; top: ringWrap.bottom; topMargin: 8 }
+                        horizontalAlignment: Text.AlignHCenter
+                        text: launcher.mp ? launcher.mp.trackTitle : ""
+                        color: Root.Theme.text; font.family: Root.Theme.fontFamily; font.pixelSize: 15; font.weight: Font.Medium; elide: Text.ElideRight
+                    }
+                    Text {
+                        id: dArtist
+                        anchors { left: parent.left; right: parent.right; top: dTitle.bottom; topMargin: 2 }
+                        horizontalAlignment: Text.AlignHCenter
+                        text: launcher.mp ? (launcher.mp.trackArtist + (launcher.mp.identity ? "  ·  " + launcher.mp.identity : "")) : ""
+                        color: Root.Theme.textDim; font.family: Root.Theme.fontFamily; font.pixelSize: 11; elide: Text.ElideRight
+                    }
+
                     Item {
                         id: dScrub
-                        anchors { left: parent.left; right: parent.right; top: topRow.bottom; topMargin: 18 }
+                        anchors { left: parent.left; right: parent.right; top: dArtist.bottom; topMargin: 14 }
                         height: 16
                         readonly property real frac: launcher.mLen > 0 ? Math.max(0, Math.min(1, launcher.mPos / launcher.mLen)) : 0
                         Rectangle {
@@ -436,15 +472,16 @@ PanelWindow {
                         font.family: Root.Theme.fontFamily
                         font.pixelSize: 10
                     }
+
                     Row {
                         anchors.horizontalCenter: parent.horizontalCenter
                         anchors.bottom: parent.bottom; anchors.bottomMargin: 14
                         spacing: 30
-                        Text { text: "\uf048"; color: Root.Theme.textGlassy; font.family: Root.Theme.fontFamily; font.pixelSize: 18
+                        Text { text: "\uf048"; color: Root.Theme.textGlassy; font.family: Root.Theme.fontFamily; font.pixelSize: 17
                             MouseArea { anchors.fill: parent; anchors.margins: -8; cursorShape: Qt.PointingHandCursor; onClicked: if (launcher.mp) launcher.mp.previous() } }
-                        Text { text: launcher.mPlaying ? "\uf04c" : "\uf04b"; color: Root.Theme.accent; font.family: Root.Theme.fontFamily; font.pixelSize: 26
+                        Text { text: launcher.mPlaying ? "\uf04c" : "\uf04b"; color: Root.Theme.accent; font.family: Root.Theme.fontFamily; font.pixelSize: 24
                             MouseArea { anchors.fill: parent; anchors.margins: -8; cursorShape: Qt.PointingHandCursor; onClicked: if (launcher.mp) launcher.mp.togglePlaying() } }
-                        Text { text: "\uf051"; color: Root.Theme.textGlassy; font.family: Root.Theme.fontFamily; font.pixelSize: 18
+                        Text { text: "\uf051"; color: Root.Theme.textGlassy; font.family: Root.Theme.fontFamily; font.pixelSize: 17
                             MouseArea { anchors.fill: parent; anchors.margins: -8; cursorShape: Qt.PointingHandCursor; onClicked: if (launcher.mp) launcher.mp.next() } }
                     }
                     Row {
