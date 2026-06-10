@@ -2,3 +2,4 @@ singleton Theme 1.0 Theme.qml
 singleton PopupState 1.0 PopupState.qml
 singleton PersistState 1.0 PersistState.qml
 singleton Devices 1.0 Devices.qml
+singleton EqService 1.0 EqService.qml

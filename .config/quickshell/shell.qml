@@ -39,4 +39,5 @@ ShellRoot {
     WallpaperSwitcher {}
     DeviceDetailPopup { }
     LocalSendPicker { }
+    Equalizer { }
 }

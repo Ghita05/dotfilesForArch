@@ -18,3 +18,4 @@ RemindersPopup 1.0 RemindersPopup.qml
 DeviceStatus 1.0 DeviceStatus.qml
 DeviceDetailPopup 1.0 DeviceDetailPopup.qml
 LocalSendPicker 1.0 LocalSendPicker.qml
+Equalizer 1.0 Equalizer.qml

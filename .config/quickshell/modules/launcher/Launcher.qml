@@ -122,16 +122,19 @@ PanelWindow {
 
     Item {
         id: dash
-        anchors.centerIn: parent
-        width: Math.min(parent.width - 80, 1240)
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.topMargin: 54
+        anchors.leftMargin: 12 
+        width: Math.min(parent.width - 520, 1240)
         height: Math.min(parent.height - 80, 680)
 
         // whole-dashboard glide+fade for a smooth, calm entrance
         opacity: launcher.open ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
         transform: Translate {
-            y: launcher.open ? 0 : 28
-            Behavior on y { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+            x: launcher.open ? 0 : -launcher.width
+            Behavior on x { NumberAnimation { duration: 420; easing.type: Easing.OutCubic } }
         }
 
         // ===== LEFT: app grid =====
