@@ -107,6 +107,8 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("/usr/lib/polkit-gnome-authentication-agent-1")
     hl.exec_cmd("hypridle")
     hl.exec_cmd("quickshell")
+    hl.dispatch(hl.dsp.exec("/usr/lib/kdeconnectd"))
+    hl.dispatch(hl.dsp.exec("sh -c 'sleep 2 && kdeconnect-indicator'"))
 end)
 
 ---------------------

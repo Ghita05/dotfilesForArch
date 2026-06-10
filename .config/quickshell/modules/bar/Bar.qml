@@ -54,8 +54,9 @@ PanelWindow {
                 Volume  { anchors.verticalCenter: parent.verticalCenter }
                 Network { anchors.verticalCenter: parent.verticalCenter }
                 Battery { anchors.verticalCenter: parent.verticalCenter }
-                Reminders { anchors.verticalCenter: parent.verticalCenter }
+                Reminders { anchors.verticalCenter: parent.verticalCenter }   
                 SysTray { anchors.verticalCenter: parent.verticalCenter }
+                DeviceStatus { anchors.verticalCenter: parent.verticalCenter }
             }
         }
     }

@@ -37,4 +37,6 @@ ShellRoot {
     Notifications{}
     PowerMenu {}
     WallpaperSwitcher {}
+    DeviceDetailPopup { }
+    LocalSendPicker { }
 }

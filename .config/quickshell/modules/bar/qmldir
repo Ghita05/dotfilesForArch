@@ -15,3 +15,6 @@ NetworkPopup 1.0 NetworkPopup.qml
 BatteryPopup 1.0 BatteryPopup.qml
 Reminders 1.0 Reminders.qml
 RemindersPopup 1.0 RemindersPopup.qml
+DeviceStatus 1.0 DeviceStatus.qml
+DeviceDetailPopup 1.0 DeviceDetailPopup.qml
+LocalSendPicker 1.0 LocalSendPicker.qml

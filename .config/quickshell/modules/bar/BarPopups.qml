@@ -33,4 +33,5 @@ PanelWindow {
     RemindersPopup { anchors.top: parent.top; anchors.right: parent.right; anchors.topMargin: 54; anchors.rightMargin: 12 }
     CalendarPopup  { anchors.top: parent.top; anchors.horizontalCenter: parent.horizontalCenter; anchors.topMargin: 54 }
     MediaPopup     { anchors.top: parent.top; anchors.horizontalCenter: parent.horizontalCenter; anchors.topMargin: 54 }
+    DeviceDetailPopup { }
 }
