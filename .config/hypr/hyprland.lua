@@ -102,13 +102,11 @@ hl.animation({ leaf = "workspaces", enabled = true, speed = 6, bezier = "liquid"
 -------------------
 hl.on("hyprland.start", function()
     hl.exec_cmd("awww-daemon")
-    hl.exec_cmd("sleep 1 && awww img ~/.config/wallpapers/mountfuji.jpg --transition-type fade")
+    hl.exec_cmd("sleep 2 && awww img \"$(cat /home/ghita/.config/quickshell/.current-wallpaper 2>/dev/null || echo ~/.config/wallpapers/mountfuji.jpg)\" --transition-type fade")
     hl.exec_cmd("wl-paste --watch cliphist store")
     hl.exec_cmd("/usr/lib/polkit-gnome-authentication-agent-1")
     hl.exec_cmd("hypridle")
     hl.exec_cmd("quickshell")
-    hl.dispatch(hl.dsp.exec("/usr/lib/kdeconnectd"))
-    hl.dispatch(hl.dsp.exec("sh -c 'sleep 2 && kdeconnect-indicator'"))
 end)
 
 ---------------------

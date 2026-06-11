@@ -72,7 +72,6 @@ QtObject {
         }
     }
     Component.onCompleted: loader.running = true
-    onOpenChanged: if (open) loader.running = true
 
     property IpcHandler ipc: IpcHandler {
         target: "eq"

@@ -38,19 +38,17 @@ PanelWindow {
         function hide(): void { root.open = false }
     }
 
-    Process {
-        id: queryProc
-        command: ["sh", "-c", "awww query | sed -n 's/.*image: //p' | head -1"]
-        stdout: StdioCollector { onStreamFinished: root.currentPath = text.trim() }
-    }
+    Process { id: queryProc }   
 
     Process { id: applyProc }
     function apply(path) {
         if (applyProc.running) applyProc.running = false
-        applyProc.command = ["awww", "img", path,
-            "--transition-type", root.transitionType,
-            "--transition-fps", "60",
-            "--transition-step", "10"]
+        applyProc.command = ["sh", "-c",
+            "awww img " + JSON.stringify(path) +
+            " --transition-type " + root.transitionType +
+            " --transition-fps 60 --transition-step 10 && " +
+            "printf '%s' " + JSON.stringify(path) +
+            " > /home/ghita/.config/quickshell/.current-wallpaper"]
         applyProc.running = true
         root.currentPath = path
     }
