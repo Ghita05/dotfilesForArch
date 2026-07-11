@@ -37,6 +37,11 @@ PanelWindow {
                 spacing: 12
                 Media { id: media; anchors.verticalCenter: parent.verticalCenter }   // skipped by Row when not visible
                 Rectangle { width: 1; height: 16; color: Root.Theme.border; visible: media.visible; anchors.verticalCenter: parent.verticalCenter }
+                VmStatus {
+        anchors.right: clockPill.left
+        anchors.rightMargin: 8
+        anchors.verticalCenter: clockPill.verticalCenter
+    }
                 Clock { id: clock; anchors.verticalCenter: parent.verticalCenter }
             }
         }

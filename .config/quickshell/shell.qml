@@ -7,6 +7,7 @@ import "modules/launcher"
 import "modules/notifications"
 import "modules/powermenu"
 import "modules/wallpaper"
+import "modules/vms"
 
 ShellRoot {
     id: root

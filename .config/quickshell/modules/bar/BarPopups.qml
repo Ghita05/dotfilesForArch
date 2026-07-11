@@ -34,4 +34,5 @@ PanelWindow {
     CalendarPopup  { anchors.top: parent.top; anchors.horizontalCenter: parent.horizontalCenter; anchors.topMargin: 54 }
     MediaPopup     { anchors.top: parent.top; anchors.horizontalCenter: parent.horizontalCenter; anchors.topMargin: 54 }
     DeviceDetailPopup { }
+    VmPopup        { anchors.top: parent.top; anchors.right: parent.horizontalCenter; anchors.rightMargin: 80; anchors.topMargin: 54 }
 }
