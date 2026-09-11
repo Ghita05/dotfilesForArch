@@ -18,6 +18,12 @@ echo "==> Linking confings..."
 mkdir -p "$CONFIG_DEST"
 for dir in "$CONFIG_SRC"/*/; do
     name="$(basename "$dir")"
+    # ambxst: only config/ is tracked (binds.json, presets/, etc. are
+    # per-machine state, not dotfiles) — linked as a subdirectory below
+    # instead of the whole directory.
+    if [ "$name" = "ambxst" ]; then
+        continue
+    fi
     target="$CONFIG_DEST/$name"
     if [ -e "$target" ] && [ !-L "$target" ]; then
        mv "$target" "$target.bak"
@@ -25,6 +31,13 @@ for dir in "$CONFIG_SRC"/*/; do
     ln -sfn "$dir" "$target"
     echo " linked $name"
 done
+
+mkdir -p "$CONFIG_DEST/ambxst"
+if [ -e "$CONFIG_DEST/ambxst/config" ] && [ ! -L "$CONFIG_DEST/ambxst/config" ]; then
+    mv "$CONFIG_DEST/ambxst/config" "$CONFIG_DEST/ambxst/config.bak"
+fi
+ln -sfn "$CONFIG_SRC/ambxst/config" "$CONFIG_DEST/ambxst/config"
+echo " linked ambxst/config (binds.json, presets/ etc. left as machine-local state)"
 
 mkdir -p "$HOME/.config/wallpapers"
 cp -n "$DOTFILES_DIR"/wallpapers/* "$HOME/.config/wallpapers/" 2>/dev/null || true
