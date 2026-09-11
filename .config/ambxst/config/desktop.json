@@ -2,5 +2,18 @@
     "enabled": true,
     "iconSize": 32,
     "spacingVertical": 8,
-    "textColor": "overBackground"
+    "textColor": "overBackground",
+    "widgets": {
+        "enabled": true,
+        "position": "top-left",
+        "tileSize": 104,
+        "spacing": 16,
+        "margin": 24,
+        "tiles": [
+            "code-oss",
+            "firefox",
+            "notion",
+            "youtube"
+        ]
+    }
 }

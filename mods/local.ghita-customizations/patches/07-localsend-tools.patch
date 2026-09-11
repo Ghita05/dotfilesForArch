@@ -1,0 +1,75 @@
+diff --git a/modules/widgets/tools/ToolsMenu.qml b/modules/widgets/tools/ToolsMenu.qml
+index 2e820c0..4bdea3a 100644
+--- a/modules/widgets/tools/ToolsMenu.qml
++++ b/modules/widgets/tools/ToolsMenu.qml
+@@ -21,6 +21,40 @@ ActionGrid {
+         property string type: "button"
+     }
+ 
++    // Ported from the old shell's LocalSend integration (Devices.qml +
++    // LocalSendPicker.qml). Send picks a file via zenity, scans for
++    // devices, then reuses Ambxst's own context-menu primitive to list
++    // them — no new overlay component needed. Receive just toggles the
++    // background localsend-cli recv process, matching the dynamic
++    // icon/tooltip pattern recordAction already uses above.
++    QtObject {
++        id: localSendReceiveAction
++        property string icon: LocalSendService.receiving ? Icons.stop : Icons.arrowFatLinesDown
++        property string text: ""
++        property string tooltip: LocalSendService.receiving ? "Stop Receiving (LocalSend)" : "Receive via LocalSend"
++        property string command: ""
++        property string variant: LocalSendService.receiving ? "error" : "primary"
++        property string type: "button"
++    }
++
++    Connections {
++        target: LocalSendService
++        function onTargetsReady() {
++            if (LocalSendService.sendTargets.length === 0) {
++                return;
++            }
++            const items = LocalSendService.sendTargets.map(t => ({
++                        text: t.name + " (" + t.ip + ")",
++                        icon: Icons.paperPlane,
++                        isSeparator: false,
++                        onTriggered: function () {
++                            LocalSendService.sendTo(t.ip);
++                        }
++                    }));
++            Visibilities.contextMenu.openCustomMenu(items, 220, 32, "localsend");
++        }
++    }
++
+     layout: "row"
+     buttonSize: 48
+     iconSize: 20
+@@ -73,7 +107,16 @@ ActionGrid {
+             icon: GlobalStates.mirrorWindowVisible ? Icons.webcamSlash : Icons.webcam,
+             tooltip: "Mirror",
+             command: ""
+-        }
++        },
++        {
++            type: "separator"
++        },
++        {
++            icon: Icons.paperPlane,
++            tooltip: "Send via LocalSend",
++            command: ""
++        },
++        localSendReceiveAction
+     ]
+ 
+     Process {
+@@ -135,6 +178,11 @@ ActionGrid {
+             root.itemSelected();
+         } else if (action.tooltip === "Mirror") {
+             GlobalStates.mirrorWindowVisible = !GlobalStates.mirrorWindowVisible;
++        } else if (action.tooltip === "Send via LocalSend") {
++            LocalSendService.pickAndSend();
++            root.itemSelected();
++        } else if (action.tooltip === "Stop Receiving (LocalSend)" || action.tooltip === "Receive via LocalSend") {
++            LocalSendService.toggleReceive();
+         }
+     }
+ }

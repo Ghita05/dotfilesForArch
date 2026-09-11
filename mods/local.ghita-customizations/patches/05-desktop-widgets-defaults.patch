@@ -1,0 +1,19 @@
+diff --git a/config/defaults/desktop.js b/config/defaults/desktop.js
+index 64cb27e..7962c88 100644
+--- a/config/defaults/desktop.js
++++ b/config/defaults/desktop.js
+@@ -4,5 +4,13 @@ var data = {
+     "enabled": false,
+     "iconSize": 40,
+     "spacingVertical": 16,
+-    "textColor": "overBackground"
++    "textColor": "overBackground",
++    "widgets": {
++        "enabled": true,
++        "position": "top-left",
++        "tileSize": 104,
++        "spacing": 16,
++        "margin": 24,
++        "tiles": []
++    }
+ }

@@ -1,0 +1,24 @@
+diff --git a/modules/lockscreen/LockScreen.qml b/modules/lockscreen/LockScreen.qml
+index 7ece5e5..0a38241 100644
+--- a/modules/lockscreen/LockScreen.qml
++++ b/modules/lockscreen/LockScreen.qml
+@@ -428,11 +428,15 @@ WlSessionLockSurface {
+                         }
+                     }
+ 
+-                    // Fallback icon if image not found
+-                    Text {
++                    // Fallback: Ambxst mascot when no ~/.face.icon is set,
++                    // in place of the generic person-emoji placeholder.
++                    Image {
+                         anchors.centerIn: parent
+-                        text: "👤"
+-                        font.pixelSize: 32
++                        width: parent.width * 0.65
++                        height: parent.height * 0.65
++                        source: Qt.resolvedUrl("../../assets/ambxst/ambxst-icon.svg")
++                        fillMode: Image.PreserveAspectFit
++                        smooth: true
+                         visible: userAvatar.status !== Image.Ready
+                     }
+                 }

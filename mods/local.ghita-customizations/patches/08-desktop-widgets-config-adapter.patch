@@ -1,0 +1,19 @@
+diff --git a/config/Config.qml b/config/Config.qml
+index bd47939..8647faa 100644
+--- a/config/Config.qml
++++ b/config/Config.qml
+@@ -885,6 +885,14 @@ Singleton {
+             property int iconSize: 40
+             property int spacingVertical: 16
+             property string textColor: "overBackground"
++            property var widgets: ({
++                    "enabled": true,
++                    "position": "top-left",
++                    "tileSize": 104,
++                    "spacing": 16,
++                    "margin": 24,
++                    "tiles": []
++                })
+         }
+     }
+ 

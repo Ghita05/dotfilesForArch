@@ -1,0 +1,119 @@
+diff --git a/modules/widgets/dashboard/metrics/MetricsTab.qml b/modules/widgets/dashboard/metrics/MetricsTab.qml
+index 97b91b3..49cf296 100644
+--- a/modules/widgets/dashboard/metrics/MetricsTab.qml
++++ b/modules/widgets/dashboard/metrics/MetricsTab.qml
+@@ -621,6 +621,114 @@ Rectangle {
+                                 }
+                             }
+                         }
++
++                        // Virtual Machines — ported from the old shell's
++                        // VmService/VmStatus/VmPopup. Simplified vs the
++                        // original: list + start/stop only, no expand-for-
++                        // details or headless/force-kill actions, to match
++                        // the compact resource-item idiom this tab already
++                        // uses rather than porting the old popup's own
++                        // bespoke styling verbatim.
++                        RowLayout {
++                            width: parent.width
++                            spacing: 8
++
++                            Separator {
++                                Layout.preferredHeight: 2
++                                Layout.fillWidth: true
++                            }
++
++                            Text {
++                                text: "Virtual Machines"
++                                font.family: Config.theme.font
++                                font.pixelSize: Styling.fontSize(-2)
++                                color: Colors.overBackground
++                            }
++
++                            Separator {
++                                Layout.preferredHeight: 2
++                                Layout.fillWidth: true
++                            }
++                        }
++
++                        Column {
++                            width: parent.width
++                            spacing: 6
++
++                            Text {
++                                visible: VmService.vms.length === 0
++                                text: "No VMs registered"
++                                font.family: Config.theme.font
++                                font.pixelSize: Styling.fontSize(-2)
++                                color: Colors.overSurfaceVariant
++                            }
++
++                            Repeater {
++                                model: VmService.vms
++
++                                delegate: StyledRect {
++                                    id: vmRow
++                                    required property var modelData
++                                    width: parent ? parent.width : 0
++                                    height: 40
++                                    radius: Styling.radius(-4)
++                                    variant: "pane"
++
++                                    RowLayout {
++                                        anchors.fill: parent
++                                        anchors.leftMargin: 10
++                                        anchors.rightMargin: 10
++                                        spacing: 8
++
++                                        Rectangle {
++                                            Layout.preferredWidth: 8
++                                            Layout.preferredHeight: 8
++                                            radius: 4
++                                            color: vmRow.modelData.running ? Colors.green : Colors.surfaceVariant
++                                        }
++
++                                        Text {
++                                            Layout.fillWidth: true
++                                            text: vmRow.modelData.name
++                                            font.family: Config.theme.font
++                                            font.pixelSize: Styling.fontSize(-2)
++                                            color: Colors.overBackground
++                                            elide: Text.ElideRight
++                                        }
++
++                                        StyledRect {
++                                            Layout.preferredWidth: 60
++                                            Layout.preferredHeight: 24
++                                            radius: Styling.radius(-6)
++                                            variant: vmActionMa.containsMouse ? "focus" : "primary"
++
++                                            Text {
++                                                anchors.centerIn: parent
++                                                text: vmRow.modelData.running ? "Stop" : "Start"
++                                                font.family: Config.theme.font
++                                                font.pixelSize: Styling.fontSize(-3)
++                                                font.bold: true
++                                                color: Styling.srItem("overprimary")
++                                            }
++
++                                            MouseArea {
++                                                id: vmActionMa
++                                                anchors.fill: parent
++                                                hoverEnabled: true
++                                                cursorShape: Qt.PointingHandCursor
++                                                onClicked: {
++                                                    if (vmRow.modelData.running) {
++                                                        VmService.shutdown(vmRow.modelData.uuid);
++                                                    } else {
++                                                        VmService.start(vmRow.modelData.uuid);
++                                                    }
++                                                }
++                                            }
++                                        }
++                                    }
++                                }
++                            }
++                        }
+                     }
+                 }
+             }

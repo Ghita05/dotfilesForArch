@@ -1,0 +1,25 @@
+diff --git a/modules/widgets/dashboard/controls/SystemPanel.qml b/modules/widgets/dashboard/controls/SystemPanel.qml
+index a3904bd..92bae70 100644
+--- a/modules/widgets/dashboard/controls/SystemPanel.qml
++++ b/modules/widgets/dashboard/controls/SystemPanel.qml
+@@ -289,6 +289,20 @@ Item {
+                                     Component.onCompleted: text = configValue
+ 
+                                     onEditingFinished: {
++                                        // Guard against a real race: if this
++                                        // field grabs and loses focus before
++                                        // Config.weather.location has loaded
++                                        // its real value from weather.json,
++                                        // text is still the stale initial ""
++                                        // and this used to write that back,
++                                        // silently clobbering the saved
++                                        // location. Config.weatherReady is
++                                        // the authoritative "has weather.json
++                                        // actually loaded" signal, so refuse
++                                        // to persist until it's true.
++                                        if (!Config.weatherReady) {
++                                            return;
++                                        }
+                                         if (text !== Config.weather.location) {
+                                             Config.weather.location = text.trim();
+                                         }

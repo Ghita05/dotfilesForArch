@@ -1,0 +1,33 @@
+diff --git a/modules/sidebar/AssistantSidebar.qml b/modules/sidebar/AssistantSidebar.qml
+index be201de..857df2d 100644
+--- a/modules/sidebar/AssistantSidebar.qml
++++ b/modules/sidebar/AssistantSidebar.qml
+@@ -144,6 +144,20 @@ Item {
+         width: GlobalStates.assistantWidth + root.sidebarMargin
+         height: parent.height
+ 
++        // The hidden-state x formula depends on parent.width, which is 0 (or
++        // otherwise unsettled) during the very first layout pass before the
++        // real screen geometry is established. That transient value can put
++        // sidebarContainer on-screen for one frame; the Behavior below then
++        // animates the correction to the true hidden position, which looks
++        // exactly like an unwanted startup swipe even though assistantVisible
++        // was never true. Fix: keep the Behavior disabled until the first
++        // real layout has happened, so that initial correction snaps
++        // instantly instead of animating. The open/close animation a user
++        // actually triggers is unaffected, since layoutSettled is true well
++        // before any real interaction is possible.
++        property bool layoutSettled: false
++        Component.onCompleted: Qt.callLater(() => { sidebarContainer.layoutSettled = true; })
++
+         x: {
+             if (GlobalStates.assistantPosition === "left")
+                 return root.active ? 0 : -(width);
+@@ -153,6 +167,7 @@ Item {
+         visible: root.active || slideAnimation.running
+ 
+         Behavior on x {
++            enabled: sidebarContainer.layoutSettled
+             NumberAnimation {
+                 id: slideAnimation
+                 duration: Config.animDuration

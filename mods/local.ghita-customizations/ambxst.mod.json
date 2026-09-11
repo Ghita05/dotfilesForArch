@@ -1,0 +1,73 @@
+{
+    "$schema": "https://raw.githubusercontent.com/Axenide/Ambxst/dev/docs/mods/manifest.schema.json",
+    "manifestVersion": 1,
+    "id": "local.ghita-customizations",
+    "name": "Ghita's customizations",
+    "version": "1.0.0",
+    "description": "Desktop widget tiles, assistant startup-swipe fix, weather ipapi.co removal + settings race fix, mascot branding on the lockscreen, ported VM status widget, and LocalSend send/receive in Tools.",
+    "license": "MIT",
+    "author": "ghita",
+    "compatibility": {
+        "api": 1,
+        "ambxst": ">=1.3.3 <1.4.0",
+        "testedBaseCommits": ["af9f8ad4f42d7cd77f57a7c75f6a2a5d1fb59674"]
+    },
+    "permissions": [
+        "Replaces the desktop icon grid with configurable quick-launch widget tiles",
+        "Removes a dead ipapi.co geoIP call from the weather bar widget",
+        "Changes the lockscreen's no-avatar fallback image",
+        "Runs VBoxManage to list/start/stop VirtualBox VMs from the dashboard",
+        "Runs zenity, localsend-cli, and a scan script to send/receive files via LocalSend"
+    ],
+    "operations": [
+        {
+            "type": "overlay",
+            "source": "payload/desktop/Desktop.qml",
+            "target": "modules/desktop/Desktop.qml",
+            "replace": true,
+            "expectedSha256": "03b94164ccd1904a5604418dc9cbcc1aa49c8fab426488d59ece201fcd7ed8e9"
+        },
+        {
+            "type": "patch",
+            "source": "patches/05-desktop-widgets-defaults.patch"
+        },
+        {
+            "type": "patch",
+            "source": "patches/08-desktop-widgets-config-adapter.patch"
+        },
+        {
+            "type": "patch",
+            "source": "patches/01-assistant-startup-fix.patch"
+        },
+        {
+            "type": "patch",
+            "source": "patches/02-weather-remove-ipapi.patch"
+        },
+        {
+            "type": "patch",
+            "source": "patches/03-weather-settings-race-fix.patch"
+        },
+        {
+            "type": "patch",
+            "source": "patches/04-lockscreen-mascot.patch"
+        },
+        {
+            "type": "overlay",
+            "source": "payload/services/VmService.qml",
+            "target": "modules/services/VmService.qml"
+        },
+        {
+            "type": "patch",
+            "source": "patches/06-vm-widget-metrics-tab.patch"
+        },
+        {
+            "type": "overlay",
+            "source": "payload/services/LocalSendService.qml",
+            "target": "modules/services/LocalSendService.qml"
+        },
+        {
+            "type": "patch",
+            "source": "patches/07-localsend-tools.patch"
+        }
+    ]
+}
