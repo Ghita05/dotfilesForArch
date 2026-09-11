@@ -16,9 +16,12 @@
   space (should be `[ ! -L "$target" ]`). Not touched, not urgent, but the
   condition likely isn't doing what it looks like it does.
 
-- Replace the `hl.unbind()` workaround in `hyprland.lua`'s workspace-bind
-  section with a source-level fix in `~/.config/ambxst/binds.json` — that file
-  is what axctl actually reads to generate the numeric workspace binds in
-  `~/.local/share/ambxst/hyprland.lua`. Disabling/remapping them at the source
-  would be more robust than unbinding them downstream every reload. Found
-  during the ambxst-config gitignore review, not scoped or started.
+- ~~Replace the `hl.unbind()` workaround with a source-level fix in
+  `~/.config/ambxst/binds.json`~~ — **done 2026-09-11**, as part of the full
+  AZERTY physical-position remap (47 keys changed in `binds.json`: numeric
+  workspace binds now use the AZERTY symbol row instead of digits, plus
+  A↔Q/Z↔W/COMMA→SEMICOLON/PERIOD→COLON). `hyprland.lua`'s OVERRIDES no longer
+  needs any workspace-bind unbinding at all — the old fragile block was
+  deleted, not just superseded. `binds.json` stays untracked in dotfiles (live
+  per-machine state, same as before), so this fix doesn't show up as a
+  dotfiles diff — it's live-only.
