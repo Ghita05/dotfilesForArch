@@ -16,7 +16,6 @@ hl.monitor({
 ---------------------
 local terminal    = "kitty"
 local fileManager = "thunar"
-local menu        = "wofi --show drun"
 ---------------
 ---- INPUT ----
 ---------------
@@ -31,82 +30,17 @@ hl.config({
     },
 })
 
------------------------
----- LOOK AND FEEL ----
------------------------
-hl.config({
-    general = {
-        gaps_in = 6,
-        gaps_out = 14,
-        border_size = 2,
-        col = {
-            active_border = { colors = {"rgba(7d9bc4cc)", "rgba(9db4d8cc)"}, angle = 45 },
-            inactive_border = "rgba(16181f88)",
-        },
-        resize_on_border = true,
-        layout = "dwindle",
-    },
-    decoration = {
-        rounding = 18,
-        active_opacity = 0.92,
-        inactive_opacity = 0.85,
-        dim_inactive = true,
-        dim_strength = 0.1,
-        shadow = {
-            enabled = true,
-            range = 30,
-            render_power = 3,
-            color = 0x66000000,
-        },
-        blur = {
-            enabled = true,
-            size = 8,
-            passes = 3,
-            new_optimizations = true,
-            ignore_opacity = false,
-            xray = false,
-            noise = 0.015,
-            contrast = 1.1,
-            brightness = 0.9,
-            vibrancy = 0.2,
-            vibrancy_darkness = 0.5,
-        },
-    },
-    animations = {
-        enabled = true,
-    },
-    dwindle = {
-        preserve_split = true,
-    },
-    misc = {
-        disable_hyprland_logo = true,
-        disable_splash_rendering = true,
-    },
-})
+-- Ambxst
+loadfile(os.getenv("HOME") .. "/.local/share/ambxst/hyprland.lua")()
 
-
-hl.layer_rule({ match = { namespace = "quickshell" }, blur = true, ignore_alpha = 0.6 })
-
--- Animation curves + animations
-hl.curve("liquid", { type = "bezier", points = { {0.23, 1}, {0.32, 1} } })
-hl.curve("ease",   { type = "bezier", points = { {0.25, 0.1}, {0.25, 1.0} } })
-
-hl.animation({ leaf = "windows",    enabled = true, speed = 6, bezier = "liquid", style = "popin 80%" })
-hl.animation({ leaf = "windowsOut", enabled = true, speed = 6, bezier = "liquid", style = "popin 80%" })
-hl.animation({ leaf = "fade",       enabled = true, speed = 6, bezier = "liquid" })
-hl.animation({ leaf = "border",     enabled = true, speed = 8, bezier = "liquid" })
-hl.animation({ leaf = "workspaces", enabled = true, speed = 6, bezier = "liquid", style = "slide" })
+-- OVERRIDES
+-- Down here you can write or source anything that you want to override from Ambxst's settings.
 
 -------------------
 ---- AUTOSTART ----
 -------------------
 hl.on("hyprland.start", function()
-    hl.exec_cmd("awww-daemon")
-    hl.exec_cmd("sleep 2 && awww img \"$(cat /home/ghita/.config/quickshell/.current-wallpaper 2>/dev/null || echo ~/.config/wallpapers/mountfuji.jpg)\" --transition-type fade")
-    hl.exec_cmd("wl-paste --watch cliphist store")
-    hl.exec_cmd("/usr/lib/polkit-gnome-authentication-agent-1")
-    hl.exec_cmd("hypridle")
-    hl.exec_cmd("quickshell")
+    hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
 end)
 
 ---------------------
@@ -114,53 +48,73 @@ end)
 ---------------------
 local mainMod = "SUPER"
 
+-- No Ambxst equivalent for these — kept as-is
 hl.bind(mainMod .. " + Q", hl.dsp.exec_cmd(terminal))
-hl.bind(mainMod .. " + C", hl.dsp.window.close())
 hl.bind(mainMod .. " + M", hl.dsp.exit())
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + B", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + P", hl.dsp.window.pseudo())
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
-hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("qs ipc call powerMenu toggle"))
-hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("hyprlock"))
-hl.bind(mainMod .. " + V", hl.dsp.exec_cmd("cliphist list | wofi --dmenu | cliphist decode | wl-copy"))
-hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("qs ipc call controlCenter toggle"))
-hl.bind(mainMod .. " + S", hl.dsp.exec_cmd("~/.local/bin/toggle-recording"))
-hl.bind(mainMod .. " + Space", hl.dsp.exec_cmd("qs ipc call launcher toggle"))
-hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("qs ipc call wallpaper toggle"))
-hl.bind(mainMod .. " + Z", hl.dsp.exec_cmd("qs ipc call eq toggle"))
+hl.bind(mainMod .. " + K", hl.dsp.exec_cmd("/home/ghita/.config/hypr/scripts/kbd-backlight-cycle.sh"), { locked = true })
 
--- Move focus
-hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }))
-hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
-hl.bind(mainMod .. " + up",    hl.dsp.focus({ direction = "up" }))
-hl.bind(mainMod .. " + down",  hl.dsp.focus({ direction = "down" }))
+-- Workspaces: hl.bind() does not parse "code:N" physical-keycode syntax
+-- (tested live via hyprctl eval — it registers the raw string as an
+-- unresolved keysym instead of a keycode; keycode stayed 0). Falling back to
+-- AZERTY symbol binds. Ambxst's own generated SUPER+1..0 binds are
+-- themselves unreachable as single chords on this layout — French AZERTY
+-- only produces digit keysyms with Shift held — so they're dead weight here
+-- regardless of what we do.
+--
+-- Checked ~/.config/ambxst/config/compositor.json: it does not expose
+-- workspace binds at all (only visual props — border/shadow/blur/gaps/
+-- rounding), so there's no source-level way to disable Ambxst's numeric
+-- binds. These hl.unbind() calls are the only lever, and they're fragile:
+-- axctl regenerates ~/.local/share/ambxst/hyprland.lua on every theme/gaps/
+-- binds change, and if the exact bind strings below ever drift from what
+-- axctl emits, these unbinds silently stop matching and the dead numeric
+-- binds come back (harmlessly inert on this layout, but not actually
+-- removed). If workspace binds misbehave after an Ambxst update, re-check
+-- ~/.local/share/ambxst/hyprland.lua for the current SUPER+<n>/SHIFT/ALT
+-- strings first.
+--
+-- Checked Ambxst's generated SUPER+SHIFT+<n> vs SUPER+ALT+<n>: they are
+-- byte-identical (both hl.dsp.window.move({workspace=N})) — no silent/
+-- follow-focus split exists to mirror. Genuinely redundant in Ambxst's own
+-- file; mirrored as-is below for parity, not because there's a distinction.
+for _, k in ipairs({
+    "SUPER + 1", "SUPER + 2", "SUPER + 3", "SUPER + 4", "SUPER + 5",
+    "SUPER + 6", "SUPER + 7", "SUPER + 8", "SUPER + 9", "SUPER + 0",
+    "SUPER + SHIFT + 1", "SUPER + SHIFT + 2", "SUPER + SHIFT + 3", "SUPER + SHIFT + 4", "SUPER + SHIFT + 5",
+    "SUPER + SHIFT + 6", "SUPER + SHIFT + 7", "SUPER + SHIFT + 8", "SUPER + SHIFT + 9", "SUPER + SHIFT + 0",
+    "SUPER + ALT + 1", "SUPER + ALT + 2", "SUPER + ALT + 3", "SUPER + ALT + 4", "SUPER + ALT + 5",
+    "SUPER + ALT + 6", "SUPER + ALT + 7", "SUPER + ALT + 8", "SUPER + ALT + 9", "SUPER + ALT + 0",
+}) do
+    hl.unbind(k)
+end
 
--- AZERTY workspace keys (switch + move)
 local azerty = { "ampersand", "eacute", "quotedbl", "apostrophe", "parenleft",
                  "minus", "egrave", "underscore", "ccedilla", "agrave" }
 for i, key in ipairs(azerty) do
     hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i }))
     hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
+    hl.bind(mainMod .. " + ALT + " .. key, hl.dsp.window.move({ workspace = i }))
 end
 
--- Move/resize with mouse
-hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
-hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
+-- Screenshots: checked ScreenshotTool.qml — open() unconditionally sets
+-- GlobalStates.screenshotCaptureMode = "region" and there is exactly one
+-- entrypoint ("screenshot" in GlobalShortcuts.qml). The backend IPC
+-- (screenshot.capture) does support a mode param per PLAN.md, but `ambxst
+-- run screenshot` doesn't expose it — region vs fullscreen is a click inside
+-- the overlay (the mode-grid at the bottom), not a separate command. No real
+-- split to bind Print vs SHIFT+Print to; both go to the same overlay.
+hl.bind("Print", hl.dsp.exec_cmd("ambxst run screenshot"))
+hl.bind("SHIFT + Print", hl.dsp.exec_cmd("ambxst run screenshot"))
 
--- Screenshots
-hl.bind("Print", hl.dsp.exec_cmd("grim - | swappy -f -"))
-hl.bind("SHIFT + Print", hl.dsp.exec_cmd("grim -g \"$(slurp)\" - | swappy -f -"))
-
--- Media & brightness
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), { locked = true, repeating = true })
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true })
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl set 5%+"), { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl set 5%-"), { locked = true, repeating = true })
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
-hl.bind(mainMod .. " + K", hl.dsp.exec_cmd("/home/ghita/.config/hypr/scripts/kbd-backlight-cycle.sh"), { locked = true })
-
-
--- Vm --
-hl.bind(mainMod .. "+ O", hl.dsp.exec_cmd("qs ipc call vms toggle"))
+-- Brightness: Ambxst's own XF86MonBrightness binds go through an axctl IPC
+-- pipe; unbinding those and rebinding on the `ambxst brightness` CLI instead,
+-- so axctl's saved/restored brightness baseline (used by idle-dimming) stays
+-- coherent — firing both paths on one keypress would double-step it.
+hl.unbind("XF86MonBrightnessUp")
+hl.unbind("XF86MonBrightnessDown")
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("ambxst brightness +5"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("ambxst brightness -5"), { locked = true, repeating = true })
