@@ -18,6 +18,12 @@ hl.env("GDK_SCALE", "1")
 hl.env("QT_SCALE_FACTOR", "1")
 hl.env("XCURSOR_SIZE", "24")
 
+-- Cursor: apple_cursor (AUR, GPL3, redrawn SVG artwork, not extracted Apple
+-- assets) installs as /usr/share/icons/macOS. Install yourself first:
+--   yay -S apple_cursor
+-- then: hyprctl setcursor macOS 24
+hl.env("XCURSOR_THEME", "macOS")
+
 -- Startup: default Hyprland logo/splash flash and a laggy startup animation.
 hl.config({
     misc = {
