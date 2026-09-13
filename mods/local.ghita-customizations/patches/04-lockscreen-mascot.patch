@@ -1,24 +1,60 @@
 diff --git a/modules/lockscreen/LockScreen.qml b/modules/lockscreen/LockScreen.qml
-index 7ece5e5..0a38241 100644
+index 7ece5e5..bac200a 100644
 --- a/modules/lockscreen/LockScreen.qml
 +++ b/modules/lockscreen/LockScreen.qml
-@@ -428,11 +428,15 @@ WlSessionLockSurface {
+@@ -428,12 +428,51 @@ WlSessionLockSurface {
                          }
                      }
  
 -                    // Fallback icon if image not found
 -                    Text {
-+                    // Fallback: Ambxst mascot when no ~/.face.icon is set,
-+                    // in place of the generic person-emoji placeholder.
-+                    Image {
++                    // Fallback: the mascot when no ~/.face.icon is set, in
++                    // place of the generic person-emoji placeholder. Split
++                    // into its two source fills so each keeps its own
++                    // colorization role, the same MultiEffect(colorization)
++                    // mechanism NotificationHistory.qml's watermark and the
++                    // stock mascot's fullTint mode both already use:
++                    // hair/glasses/mouth -> primary (brand accent),
++                    // highlight patch/edge strokes -> overBackground.
++                    // surfaceBright was tried first (matching a reasonable
++                    // guess) and rendered nearly invisible against primary
++                    // in this dark theme (#3e392f vs #e7c26c) — checked the
++                    // live palette and rendered both before picking.
++                    Item {
                          anchors.centerIn: parent
 -                        text: "👤"
 -                        font.pixelSize: 32
 +                        width: parent.width * 0.65
 +                        height: parent.height * 0.65
-+                        source: Qt.resolvedUrl("../../assets/ambxst/ambxst-icon.svg")
-+                        fillMode: Image.PreserveAspectFit
-+                        smooth: true
                          visible: userAvatar.status !== Image.Ready
++
++                        Image {
++                            id: logoHighlight
++                            anchors.fill: parent
++                            source: Qt.resolvedUrl("../../assets/logo-highlight.svg")
++                            fillMode: Image.PreserveAspectFit
++                            smooth: true
++                            layer.enabled: true
++                            layer.effect: MultiEffect {
++                                brightness: 1.0
++                                colorization: 1.0
++                                colorizationColor: Colors.overBackground
++                            }
++                        }
++
++                        Image {
++                            id: logoInk
++                            anchors.fill: parent
++                            source: Qt.resolvedUrl("../../assets/logo-ink.svg")
++                            fillMode: Image.PreserveAspectFit
++                            smooth: true
++                            layer.enabled: true
++                            layer.effect: MultiEffect {
++                                brightness: 1.0
++                                colorization: 1.0
++                                colorizationColor: Colors.primary
++                            }
++                        }
                      }
                  }
+ 

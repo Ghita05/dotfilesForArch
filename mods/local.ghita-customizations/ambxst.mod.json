@@ -15,11 +15,26 @@
     "permissions": [
         "Replaces the desktop icon grid with configurable quick-launch widget tiles",
         "Removes a dead ipapi.co geoIP call from the weather bar widget",
-        "Changes the lockscreen's no-avatar fallback image",
+        "Changes the lockscreen's no-avatar fallback image to a two-tone, theme-colorized personal logo",
         "Runs VBoxManage to list/start/stop VirtualBox VMs from the dashboard",
         "Runs zenity, localsend-cli, and a scan script to send/receive files via LocalSend"
     ],
     "operations": [
+        {
+            "type": "overlay",
+            "source": "assets/logo-ink.svg",
+            "target": "assets/logo-ink.svg"
+        },
+        {
+            "type": "overlay",
+            "source": "assets/logo-highlight.svg",
+            "target": "assets/logo-highlight.svg"
+        },
+        {
+            "type": "overlay",
+            "source": "assets/logo.svg",
+            "target": "assets/logo.svg"
+        },
         {
             "type": "overlay",
             "source": "payload/desktop/Desktop.qml",
