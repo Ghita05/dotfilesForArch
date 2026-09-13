@@ -1,19 +1,32 @@
 diff --git a/config/defaults/desktop.js b/config/defaults/desktop.js
-index 64cb27e..7962c88 100644
+index 64cb27e..e347558 100644
 --- a/config/defaults/desktop.js
 +++ b/config/defaults/desktop.js
-@@ -4,5 +4,13 @@ var data = {
+@@ -4,5 +4,26 @@ var data = {
      "enabled": false,
      "iconSize": 40,
      "spacingVertical": 16,
 -    "textColor": "overBackground"
 +    "textColor": "overBackground",
++    "screenList": [],
 +    "widgets": {
 +        "enabled": true,
-+        "position": "top-left",
-+        "tileSize": 104,
-+        "spacing": 16,
-+        "margin": 24,
-+        "tiles": []
++        "gridSnap": 20,
++        "tiles": [
++            { "type": "vscode", "appId": "code-oss", "size": "small", "x": 40, "y": 40 },
++            { "type": "firefox", "appId": "firefox", "size": "medium", "x": 40, "y": 206 },
++            { "type": "spotify", "appId": "spotify", "size": "large", "x": 372, "y": 40 },
++            { "type": "filemanager", "appId": "thunar", "size": "medium", "x": 40, "y": 372 }
++        ],
++        "launchers": {
++            "enabled": true,
++            "tileSize": 56,
++            "apps": [
++                { "appId": "code-oss" },
++                { "appId": "firefox" },
++                { "appId": "notion" },
++                { "appId": "youtube" }
++            ]
++        }
 +    }
  }

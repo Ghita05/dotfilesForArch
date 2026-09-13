@@ -1,19 +1,32 @@
 diff --git a/config/Config.qml b/config/Config.qml
-index bd47939..8647faa 100644
+index bd47939..402e501 100644
 --- a/config/Config.qml
 +++ b/config/Config.qml
-@@ -885,6 +885,14 @@ Singleton {
+@@ -885,6 +885,27 @@ Singleton {
              property int iconSize: 40
              property int spacingVertical: 16
              property string textColor: "overBackground"
++            property var screenList: []
 +            property var widgets: ({
++                "enabled": true,
++                "gridSnap": 20,
++                "tiles": [
++                    { "type": "vscode", "appId": "code-oss", "size": "small", "x": 40, "y": 40 },
++                    { "type": "firefox", "appId": "firefox", "size": "medium", "x": 40, "y": 206 },
++                    { "type": "spotify", "appId": "spotify", "size": "large", "x": 372, "y": 40 },
++                    { "type": "filemanager", "appId": "thunar", "size": "medium", "x": 40, "y": 372 }
++                ],
++                "launchers": {
 +                    "enabled": true,
-+                    "position": "top-left",
-+                    "tileSize": 104,
-+                    "spacing": 16,
-+                    "margin": 24,
-+                    "tiles": []
-+                })
++                    "tileSize": 56,
++                    "apps": [
++                        { "appId": "code-oss" },
++                        { "appId": "firefox" },
++                        { "appId": "notion" },
++                        { "appId": "youtube" }
++                    ]
++                }
++            })
          }
      }
  

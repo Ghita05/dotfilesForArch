@@ -1,19 +1,67 @@
 {
+  "enabled": true,
+  "iconSize": 32,
+  "spacingVertical": 8,
+  "textColor": "overBackground",
+  "screenList": [],
+  "widgets": {
     "enabled": true,
-    "iconSize": 32,
-    "spacingVertical": 8,
-    "textColor": "overBackground",
-    "widgets": {
-        "enabled": true,
-        "position": "top-left",
-        "tileSize": 104,
-        "spacing": 16,
-        "margin": 24,
-        "tiles": [
-            "code-oss",
-            "firefox",
-            "notion",
-            "youtube"
-        ]
+    "gridSnap": 20,
+    "tiles": [
+      {
+        "appId": "code-oss",
+        "size": "small",
+        "type": "vscode",
+        "x": 40,
+        "y": 40
+      },
+      {
+        "appId": "firefox",
+        "size": "medium",
+        "type": "firefox",
+        "x": 40,
+        "y": 200
+      },
+      {
+        "appId": "spotify",
+        "size": "large",
+        "type": "spotify",
+        "x": 40,
+        "y": 540
+      },
+      {
+        "appId": "thunar",
+        "size": "medium",
+        "type": "filemanager",
+        "x": 40,
+        "y": 372
+      }
+    ],
+    "launchers": {
+      "enabled": true,
+      "tileSize": 56,
+      "apps": [
+        {
+          "appId": "code-oss",
+          "x": 140,
+          "y": 880
+        },
+        {
+          "appId": "firefox",
+          "x": 60,
+          "y": 880
+        },
+        {
+          "appId": "notion",
+          "x": 300,
+          "y": 880
+        },
+        {
+          "appId": "youtube",
+          "x": 220,
+          "y": 880
+        }
+      ]
     }
+  }
 }

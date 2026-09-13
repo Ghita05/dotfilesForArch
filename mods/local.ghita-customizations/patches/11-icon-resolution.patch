@@ -1,0 +1,91 @@
+diff --git a/modules/services/AppSearch.qml b/modules/services/AppSearch.qml
+index 8829155..924a560 100644
+--- a/modules/services/AppSearch.qml
++++ b/modules/services/AppSearch.qml
+@@ -9,7 +9,63 @@ Singleton {
+     id: root
+ 
+     property var iconCache: ({})
+-    
++
++    // Resolves a live Hyprland/Wayland window class to a DesktopEntry more
++    // thoroughly than DesktopEntries.heuristicLookup() alone. Built after
++    // auditing every app this machine actually runs: heuristicLookup
++    // handles plain classes fine (firefox, code-oss, kitty) but misses two
++    // real cases —
++    //  1. Chromium "--app=" PWA windows (youtube, notion): Chromium
++    //     ignores the launcher script's --class= flag in app mode and
++    //     reports "chrome-<host>__-<profile>" instead (confirmed live:
++    //     "chrome-www.youtube.com__-Default", "chrome-www.notion.so__-
++    //     Default"). The .desktop files' StartupWMClass has been corrected
++    //     to match that directly, which is the real fix; this is a second
++    //     layer so any *future* PWA launched the same way still resolves
++    //     even before someone remembers to set StartupWMClass for it.
++    //  2. Case mismatches against a desktop file's own id when no
++    //     StartupWMClass is declared (Thunar's window class is "Thunar",
++    //     its desktop file's id is "thunar").
++    function resolveByWindowClass(cls) {
++        if (!cls)
++            return null;
++
++        // 1. Quickshell's own heuristic first — cheap, handles the common
++        // cases correctly already.
++        let entry = DesktopEntries.heuristicLookup(cls);
++        if (entry)
++            return entry;
++
++        const all = DesktopEntries.applications.values;
++        const lower = cls.toLowerCase();
++
++        // 2. Exact id match, then case-insensitive id match.
++        for (let i = 0; i < all.length; i++) {
++            if (all[i].id === cls)
++                return all[i];
++        }
++        for (let i = 0; i < all.length; i++) {
++            if ((all[i].id || "").toLowerCase() === lower)
++                return all[i];
++        }
++
++        // 3. Chromium "--app=" PWA class pattern: chrome-<host>__-<profile>.
++        // Extract the host's first label (youtube.com -> youtube) and
++        // match it against any desktop entry's id or name.
++        const chromeMatch = /^chrome-(?:www\.)?([a-z0-9-]+)\./i.exec(cls);
++        if (chromeMatch) {
++            const keyword = chromeMatch[1].toLowerCase();
++            for (let i = 0; i < all.length; i++) {
++                const idLower = (all[i].id || "").toLowerCase();
++                const nameLower = (all[i].name || "").toLowerCase();
++                if (idLower.includes(keyword) || nameLower.includes(keyword))
++                    return all[i];
++            }
++        }
++
++        return null;
++    }
++
+     function getCachedIcon(str) {
+         if (!str) return "image-missing";
+         if (iconCache[str]) return iconCache[str];
+diff --git a/modules/bar/workspaces/Workspaces.qml b/modules/bar/workspaces/Workspaces.qml
+index 48f68cd..75be64c 100644
+--- a/modules/bar/workspaces/Workspaces.qml
++++ b/modules/bar/workspaces/Workspaces.qml
+@@ -433,7 +433,7 @@ Item {
+                             return winFocus < bestFocus ? win : best;
+                         }, null);
+                     }
+-                    readonly property var focusedDesktopEntry: focusedWindow ? DesktopEntries.heuristicLookup(focusedWindow.class) : null
++                    readonly property var focusedDesktopEntry: focusedWindow ? AppSearch.resolveByWindowClass(focusedWindow.class) : null
+                     property var mainAppIconSource: {
+                         if (focusedDesktopEntry && focusedDesktopEntry.icon) {
+                             return Quickshell.iconPath(focusedDesktopEntry.icon, "image-missing");
+@@ -570,7 +570,7 @@ Item {
+                             return winFocus < bestFocus ? win : best;
+                         }, null);
+                     }
+-                    readonly property var focusedDesktopEntry: focusedWindow ? DesktopEntries.heuristicLookup(focusedWindow.class) : null
++                    readonly property var focusedDesktopEntry: focusedWindow ? AppSearch.resolveByWindowClass(focusedWindow.class) : null
+                     property var mainAppIconSource: {
+                         if (focusedDesktopEntry && focusedDesktopEntry.icon) {
+                             return Quickshell.iconPath(focusedDesktopEntry.icon, "image-missing");
