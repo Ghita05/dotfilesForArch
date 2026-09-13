@@ -1,0 +1,30 @@
+diff --git a/modules/widgets/dashboard/widgets/NotificationHistory.qml b/modules/widgets/dashboard/widgets/NotificationHistory.qml
+index 3879793..1a68709 100644
+--- a/modules/widgets/dashboard/widgets/NotificationHistory.qml
++++ b/modules/widgets/dashboard/widgets/NotificationHistory.qml
+@@ -209,8 +209,15 @@ Item {
+                 visible: Notifications.appNameList.length === 0
+ 
+                 Image {
++                    // Was the AMBXST wordmark; swapped for the personal
++                    // logo mark, same MultiEffect(colorization) mechanism,
++                    // same footprint/opacity so the empty-state layout
++                    // doesn't shift. Checked legibility at this exact
++                    // 64px/0.25-opacity size before wiring it in — the
++                    // simple monoline mark reads clearly here, unlike an
++                    // earlier, more detailed two-tone version that didn't.
+                     mipmap: true
+-                    source: Qt.resolvedUrl("../../../../assets/ambxst/ambxst-logo.svg")
++                    source: Qt.resolvedUrl("../../../../assets/logo.svg")
+                     opacity: 0.25
+                     sourceSize.width: 64
+                     sourceSize.height: 64
+@@ -220,7 +227,7 @@ Item {
+                     layer.effect: MultiEffect {
+                         brightness: 1.0
+                         colorization: 1.0
+-                        colorizationColor: Styling.srItem("pane")
++                        colorizationColor: Colors.primary
+                     }
+                 }
+             }
