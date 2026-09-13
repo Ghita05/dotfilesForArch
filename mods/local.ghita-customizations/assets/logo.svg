@@ -1,10 +1,9 @@
-<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Glasses logo">
-  <g id="frame" fill="none" stroke="#111111" stroke-width="20"
-     stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="148" cy="256" r="84"/>
-    <circle cx="364" cy="256" r="84"/>
-    <path d="M227 227 Q256 204 285 227"/>
-    <path d="M72 221 Q46 207 30 189"/>
-    <path d="M440 221 Q466 207 482 189"/>
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Guitar pick logo">
+  <g id="mark" fill="#111111">
+    <path d="M256 100
+             C338 100, 400 142, 400 194
+             C400 274, 330 362, 256 412
+             C182 362, 112 274, 112 194
+             C112 142, 174 100, 256 100 Z"/>
   </g>
 </svg>
