@@ -3,8 +3,8 @@
     "manifestVersion": 1,
     "id": "local.ghita-customizations",
     "name": "Ghita's customizations",
-    "version": "5.0.0",
-    "description": "iPadOS-style desktop app widgets (VS Code recent workspaces, Firefox recent history, Spotify now-playing with disk-cached art, Thunar recent/bookmarked folders) with a coherent-but-distinct visual identity (raised background opacity, a visible drop shadow, a per-app accent hairline), fixed small/medium/large sizes with a shared row/empty-state design system, all freely draggable, grid-snapped, and edge-clamped (both live and at load, so a stale or cross-monitor position self-heals), individually draggable secondary launcher icons, a generalized window-class-to-icon fallback for the workspace bar plus corrected StartupWMClass for the Chromium PWAs and Thunar, assistant startup-swipe fix, weather settings race fix, guitar-pick mascot branding on the lockscreen/watermark/launcher, ported VM status widget, and LocalSend send/receive in Tools.",
+    "version": "5.1.0",
+    "description": "iPadOS-style desktop app widgets (VS Code recent workspaces, Firefox recent history, Spotify now-playing with disk-cached art and a dimmed last-played idle state, Thunar recent/bookmarked folders) with a coherent-but-distinct visual identity (raised background opacity, a visible drop shadow, a per-app accent hairline) and clickable headers (click launches the app, drag moves the tile), fixed small/medium/large sizes with a shared row/empty-state design system, all freely draggable, grid-snapped, and edge-clamped (both live and at load, so a stale or cross-monitor position self-heals), individually draggable secondary launcher icons now including WhatsApp and Outlook PWAs, a generalized window-class-to-icon fallback for the workspace bar plus corrected StartupWMClass for the Chromium PWAs and Thunar, assistant startup-swipe fix, weather settings race fix, guitar-pick mascot branding on the lockscreen/watermark/launcher, ported VM status widget, and LocalSend send/receive in Tools.",
     "license": "MIT",
     "author": "ghita",
     "compatibility": {
@@ -13,8 +13,8 @@
         "testedBaseCommits": ["af9f8ad4f42d7cd77f57a7c75f6a2a5d1fb59674"]
     },
     "permissions": [
-        "Replaces the desktop icon grid with live, draggable app widgets: reads VS Code's local state.vscdb/storage.json for recent workspaces, a temporary read-only copy of Firefox's places.sqlite for recent history, MPRIS/D-Bus for Spotify now-playing and controls, and GTK bookmarks plus recently-used.xbel for Thunar folders, plus individually draggable app-launcher icons",
-        "Runs code-oss, firefox, and thunar to open a clicked recent workspace/page/folder",
+        "Replaces the desktop icon grid with live, draggable app widgets: reads VS Code's local state.vscdb/storage.json for recent workspaces, a temporary read-only copy of Firefox's places.sqlite for recent history, MPRIS/D-Bus for Spotify now-playing and controls, and GTK bookmarks plus recently-used.xbel for Thunar folders, plus individually draggable app-launcher icons (now including WhatsApp and Outlook PWA launchers)",
+        "Runs code-oss, firefox, and thunar to open a clicked recent workspace/page/folder, and the widget headers now launch their app on click (chromium --app= for the WhatsApp/Outlook/YouTube/Notion PWAs)",
         "Downloads the current Spotify track's album art via curl to ~/.cache/ambxst/spotify-art/ (once per track, cached, auto-pruned after 30 days) and runs ImageMagick on the cached file to pick an accent color — never touches the network on a property tick, only on a genuine track change",
         "Changes the lockscreen's no-avatar fallback image, the bar launcher icon, and the dashboard notifications watermark to a theme-colorized personal logo mark",
         "Broadens the workspace bar's window-class-to-icon matching (AppSearch.resolveByWindowClass) to catch Chromium app-mode PWA windows and case-mismatched classes that Quickshell's own heuristic misses",

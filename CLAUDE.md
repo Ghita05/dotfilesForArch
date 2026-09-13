@@ -67,6 +67,25 @@ per-machine state, never copied into the dotfiles tree.
     `name=`/`resolution=`. Calling it with the wrong keys throws
     `hl.monitor: 'output' field is required and must be a string` — a clean
     error, but still one that aborts the whole load.
+  - **`hyprctl dispatch` on this build takes a Lua expression, not classic
+    `.conf` dispatcher syntax.** Whatever text follows `dispatch` gets
+    wrapped verbatim as `return hl.dispatch(<text>)` — so it has to be a
+    complete, already-callable `hl.dsp.*` expression, not a bareword
+    dispatcher name plus space-separated args the old way
+    (`hyprctl dispatch workspace 2` fails with `')' expected near '2'`,
+    and `hl.dsp.workspace` itself is a table — not callable — for
+    rename/swap_monitors/toggle_special/change_id/move, so calling it
+    directly fails too). Confirmed correct by reading the actual generated
+    `~/.local/share/ambxst/hyprland.lua` (axctl's output, not guessed):
+    switching workspace focus is `hl.dsp.focus`, e.g.
+    `hyprctl dispatch 'hl.dsp.focus({workspace="2"})'`; moving the focused
+    window to a workspace is `hl.dsp.window.move({workspace="2"})`; closing
+    it is `hl.dsp.window.close()`; running a shell command is
+    `hl.dsp.exec_cmd("command")`. General rule: quote a single, complete
+    `hl.dsp.<category>.<method>(...)` or `hl.dsp.<method>(...)` call as one
+    argument — never bareword dispatcher-plus-args. `hyprctl eval` follows
+    the identical convention (see the verification tip right below) since
+    both are the same Lua-eval mechanism under the hood.
   - **Before writing any new `hl.*` call into `hyprland.lua`, verify it first**
     with a non-destructive live check:
     `hyprctl eval "error('TYPE_IS:' .. type(hl.whatever))"` — the error text

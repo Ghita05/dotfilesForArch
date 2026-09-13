@@ -277,7 +277,13 @@ PanelWindow {
                             source: tile.appEntry ? "image://icon/" + tile.appEntry.icon : "image://icon/image-missing"
                             fillMode: Image.PreserveAspectFit
                             asynchronous: true
-                            opacity: 0.65
+                            opacity: headerHover.hovered ? 0.95 : 0.65
+
+                            Behavior on opacity {
+                                NumberAnimation {
+                                    duration: 120
+                                }
+                            }
                         }
 
                         Text {
@@ -286,9 +292,37 @@ PanelWindow {
                             font.family: Config.theme.font
                             font.pixelSize: Styling.fontSize(-3)
                             font.weight: Font.Medium
+                            font.underline: headerHover.hovered
                             color: Colors.overBackground
-                            opacity: 0.55
+                            opacity: headerHover.hovered ? 0.9 : 0.55
                             elide: Text.ElideRight
+
+                            Behavior on opacity {
+                                NumberAnimation {
+                                    duration: 120
+                                }
+                            }
+                        }
+
+                        // Click launches the app, drag moves the tile — the
+                        // same TapHandler+DragHandler coexistence the
+                        // launcher icons below already rely on (a real
+                        // drag exceeds TapHandler's threshold and gets
+                        // reassigned to DragHandler; a quick click never
+                        // does). HoverHandler makes it discoverable as
+                        // clickable before you've tried.
+                        HoverHandler {
+                            id: headerHover
+                            enabled: tile.showHeader
+                            cursorShape: Qt.PointingHandCursor
+                        }
+
+                        TapHandler {
+                            enabled: tile.showHeader
+                            onTapped: {
+                                if (tile.appEntry)
+                                    AppSearch.launchApp(tile.appEntry);
+                            }
                         }
 
                         DragHandler {

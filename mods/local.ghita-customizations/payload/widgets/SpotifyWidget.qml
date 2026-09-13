@@ -4,6 +4,7 @@ import Quickshell.Io
 import Quickshell.Services.Mpris
 import qs.modules.theme
 import qs.modules.components
+import qs.modules.services
 import qs.config
 
 // Spotify-specific now-playing widget, iOS-Now-Playing style: art bleeds
@@ -52,6 +53,44 @@ Item {
     property string cachedArtPath: ""
     property color dominantColor: Styling.srItem("overprimary")
     property string lastFetchedUrl: ""
+
+    // Snapshot of the most recently seen track, kept around after the
+    // player disappears so the empty state can show it dimmed instead of
+    // a bare "isn't running" glyph in a mostly-empty card — an idle
+    // now-playing widget is still a now-playing widget. Never cleared;
+    // only overwritten by a genuinely new track.
+    property string lastTitle: ""
+    property string lastArtist: ""
+    property string lastArtPath: ""
+    property color lastColor: Styling.srItem("overprimary")
+
+    // hasContent: is there anything at all to show (live or remembered)?
+    // hasPlayer already means "live and controllable" — kept separate so
+    // the layouts below can show remembered info while still disabling
+    // the transport controls that would have nothing to act on.
+    readonly property bool hasContent: root.hasPlayer || root.lastTitle.length > 0
+    readonly property string displayTitle: root.hasPlayer ? (root.player.trackTitle || "Unknown track") : root.lastTitle
+    readonly property string displayArtist: root.hasPlayer ? (root.player.trackArtist || "") : root.lastArtist
+    readonly property string displayArtPath: root.hasPlayer ? root.cachedArtPath : root.lastArtPath
+    readonly property bool hasDisplayArt: root.displayArtPath.length > 0
+    readonly property color displayColor: root.hasPlayer ? root.dominantColor : root.lastColor
+
+    function snapshotLast() {
+        if (!root.hasPlayer)
+            return;
+        const title = root.player.trackTitle || "";
+        if (title.length === 0)
+            return;
+        root.lastTitle = title;
+        root.lastArtist = root.player.trackArtist || "";
+        if (root.hasArt)
+            root.lastArtPath = root.cachedArtPath;
+        root.lastColor = root.dominantColor;
+    }
+
+    function openSpotify() {
+        DesktopService.runInActiveWorkspace("spotify");
+    }
 
     function formatTime(seconds) {
         const total = Math.max(0, Math.floor(seconds || 0));
@@ -104,17 +143,24 @@ Item {
                 if (lines.length >= 2 && /^#[0-9A-Fa-f]{6}$/.test(lines[1])) {
                     root.dominantColor = lines[1];
                 }
+                root.snapshotLast();
             }
         }
     }
 
-    onPlayerChanged: root.ensureArtCached()
+    onPlayerChanged: {
+        root.ensureArtCached();
+        root.snapshotLast();
+    }
     Component.onCompleted: root.ensureArtCached()
 
     Connections {
         target: root.player
         function onTrackArtUrlChanged() {
             root.ensureArtCached();
+        }
+        function onTrackTitleChanged() {
+            root.snapshotLast();
         }
     }
 
@@ -153,40 +199,58 @@ Item {
         }
     }
 
+    // Only the true "never played anything" state — once there's a
+    // remembered track, the sized layouts below take over (dimmed) instead
+    // of this.
     WidgetEmptyState {
-        visible: !root.hasPlayer
-        message: "Spotify isn't running"
+        visible: !root.hasContent
+        message: "Nothing played yet"
         iconGlyph: Icons.player
         compact: root.size === "small"
+
+        TapHandler {
+            onTapped: root.openSpotify()
+        }
     }
 
     // Full-bleed art background for every size (medium/large draw text and
     // controls on top of this same Image via a scrim; small just needs the
-    // play/pause overlay).
+    // play/pause overlay). Uses the last-known track's art, dimmed, when
+    // nothing's currently playing — an idle now-playing widget still earns
+    // its space instead of going blank.
     Image {
         id: art
         anchors.fill: parent
-        source: root.hasArt ? root.cachedArtPath : ""
+        source: root.hasDisplayArt ? root.displayArtPath : ""
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
-        visible: root.hasPlayer && root.hasArt
+        visible: root.hasContent && root.hasDisplayArt
+        opacity: root.hasPlayer ? 1.0 : 0.45
     }
 
     Rectangle {
         anchors.fill: parent
-        visible: root.hasPlayer && !root.hasArt
+        visible: root.hasContent && !root.hasDisplayArt
         color: Colors.surfaceVariant
+    }
+
+    // Tap-to-launch affordance for the whole card while idle — sits above
+    // the art but below the size-specific content below it, so it never
+    // steals the tap from a real transport control when one is live.
+    TapHandler {
+        enabled: root.hasContent && !root.hasPlayer
+        onTapped: root.openSpotify()
     }
 
     // --- Small: play/pause overlay only, no text ---
     Item {
-        visible: root.size === "small" && root.hasPlayer
+        visible: root.size === "small" && root.hasContent
         anchors.fill: parent
 
         Rectangle {
             anchors.fill: parent
             color: "black"
-            opacity: 0.2
+            opacity: root.hasPlayer ? 0.2 : 0.4
         }
 
         Rectangle {
@@ -194,18 +258,19 @@ Item {
             width: 40
             height: 40
             radius: width / 2
-            color: root.dominantColor
+            color: root.displayColor
 
             Text {
                 anchors.centerIn: parent
-                anchors.horizontalCenterOffset: root.isPlaying ? 0 : 1
-                text: root.isPlaying ? Icons.pause : Icons.play
+                anchors.horizontalCenterOffset: (root.hasPlayer && root.isPlaying) ? 0 : 1
+                text: root.hasPlayer ? (root.isPlaying ? Icons.pause : Icons.play) : Icons.play
                 font.family: Icons.font
                 font.pixelSize: Styling.fontSize(2)
                 color: "white"
             }
 
             TapHandler {
+                enabled: root.hasPlayer
                 onTapped: root.togglePlaying()
             }
         }
@@ -213,7 +278,7 @@ Item {
 
     // --- Medium: text + minimal controls over a bottom scrim ---
     Item {
-        visible: root.size === "medium" && root.hasPlayer
+        visible: root.size === "medium" && root.hasContent
         anchors.fill: parent
 
         Rectangle {
@@ -228,7 +293,7 @@ Item {
                 }
                 GradientStop {
                     position: 1.0
-                    color: Qt.rgba(0, 0, 0, 0.72)
+                    color: Qt.rgba(0, 0, 0, root.hasPlayer ? 0.72 : 0.82)
                 }
             }
         }
@@ -243,21 +308,22 @@ Item {
 
             Text {
                 Layout.fillWidth: true
-                text: root.hasPlayer ? (root.player.trackTitle || "Unknown track") : ""
+                text: root.displayTitle
                 font.family: Config.theme.font
                 font.pixelSize: Styling.fontSize(0)
                 font.weight: Font.Bold
                 color: "white"
+                opacity: root.hasPlayer ? 1.0 : 0.7
                 elide: Text.ElideRight
             }
 
             Text {
                 Layout.fillWidth: true
-                text: root.hasPlayer ? (root.player.trackArtist || "") : ""
+                text: root.hasPlayer ? root.displayArtist : "Not Playing"
                 font.family: Config.theme.font
                 font.pixelSize: Styling.fontSize(-3)
                 color: "white"
-                opacity: 0.8
+                opacity: root.hasPlayer ? 0.8 : 0.6
                 elide: Text.ElideRight
             }
         }
@@ -275,13 +341,15 @@ Item {
 
                 Text {
                     anchors.centerIn: parent
-                    text: root.isPlaying ? Icons.pause : Icons.play
+                    text: root.hasPlayer ? (root.isPlaying ? Icons.pause : Icons.play) : Icons.launch
                     font.family: Icons.font
                     font.pixelSize: Styling.fontSize(3)
                     color: "white"
+                    opacity: root.hasPlayer ? 1.0 : 0.7
                 }
 
                 TapHandler {
+                    enabled: root.hasPlayer
                     onTapped: root.togglePlaying()
                 }
             }
@@ -290,7 +358,7 @@ Item {
 
     // --- Large: text + full transport + scrub bar over a bottom scrim ---
     Item {
-        visible: root.size === "large" && root.hasPlayer
+        visible: root.size === "large" && root.hasContent
         anchors.fill: parent
 
         Rectangle {
@@ -305,7 +373,7 @@ Item {
                 }
                 GradientStop {
                     position: 1.0
-                    color: Qt.rgba(0, 0, 0, 0.8)
+                    color: Qt.rgba(0, 0, 0, root.hasPlayer ? 0.8 : 0.85)
                 }
             }
         }
@@ -319,29 +387,34 @@ Item {
 
             Text {
                 Layout.fillWidth: true
-                text: root.hasPlayer ? (root.player.trackTitle || "Unknown track") : ""
+                text: root.displayTitle
                 font.family: Config.theme.font
                 font.pixelSize: Styling.fontSize(1)
                 font.weight: Font.Bold
                 color: "white"
+                opacity: root.hasPlayer ? 1.0 : 0.7
                 elide: Text.ElideRight
             }
 
             Text {
                 Layout.fillWidth: true
-                text: root.hasPlayer ? (root.player.trackArtist || "") : ""
+                text: root.hasPlayer ? root.displayArtist : "Not Playing"
                 font.family: Config.theme.font
                 font.pixelSize: Styling.fontSize(-2)
                 color: "white"
-                opacity: 0.8
+                opacity: root.hasPlayer ? 0.8 : 0.6
                 elide: Text.ElideRight
             }
 
+            // Collapsed entirely (not just disabled) while idle — there's
+            // no live position to show, and an inert scrub bar reads as
+            // broken rather than idle.
             StyledSlider {
                 id: scrubBar
                 Layout.fillWidth: true
-                Layout.preferredHeight: 10
-                Layout.topMargin: 4
+                Layout.preferredHeight: root.hasPlayer ? 10 : 0
+                Layout.topMargin: root.hasPlayer ? 4 : 0
+                visible: root.hasPlayer
                 vertical: false
                 enabled: root.hasPlayer && (root.player.canSeek ?? false)
                 progressColor: root.dominantColor
@@ -385,8 +458,12 @@ Item {
                 spacing: 24
 
                 Item {
-                    Layout.preferredWidth: 32
+                    // Collapsed while idle — prev/next have nothing to act
+                    // on, and showing them dimmed next to a working "open"
+                    // button read as broken controls rather than idle ones.
+                    Layout.preferredWidth: root.hasPlayer ? 32 : 0
                     Layout.preferredHeight: 32
+                    visible: root.hasPlayer
 
                     Text {
                         anchors.centerIn: parent
@@ -394,7 +471,7 @@ Item {
                         font.family: Icons.font
                         font.pixelSize: Styling.fontSize(1)
                         color: "white"
-                        opacity: root.hasPlayer && root.player.canGoPrevious ? 0.9 : 0.35
+                        opacity: root.player && root.player.canGoPrevious ? 0.9 : 0.35
                     }
 
                     TapHandler {
@@ -403,25 +480,26 @@ Item {
                 }
 
                 Item {
-                    Layout.preferredWidth: 40
-                    Layout.preferredHeight: 40
+                    Layout.preferredWidth: root.hasPlayer ? 40 : 48
+                    Layout.preferredHeight: root.hasPlayer ? 40 : 48
 
                     Text {
                         anchors.centerIn: parent
-                        text: root.isPlaying ? Icons.pause : Icons.play
+                        text: root.hasPlayer ? (root.isPlaying ? Icons.pause : Icons.play) : Icons.launch
                         font.family: Icons.font
-                        font.pixelSize: Styling.fontSize(4)
+                        font.pixelSize: Styling.fontSize(root.hasPlayer ? 4 : 3)
                         color: "white"
                     }
 
                     TapHandler {
-                        onTapped: root.togglePlaying()
+                        onTapped: root.hasPlayer ? root.togglePlaying() : root.openSpotify()
                     }
                 }
 
                 Item {
-                    Layout.preferredWidth: 32
+                    Layout.preferredWidth: root.hasPlayer ? 32 : 0
                     Layout.preferredHeight: 32
+                    visible: root.hasPlayer
 
                     Text {
                         anchors.centerIn: parent
@@ -429,7 +507,7 @@ Item {
                         font.family: Icons.font
                         font.pixelSize: Styling.fontSize(1)
                         color: "white"
-                        opacity: root.hasPlayer && root.player.canGoNext ? 0.9 : 0.35
+                        opacity: root.player && root.player.canGoNext ? 0.9 : 0.35
                     }
 
                     TapHandler {

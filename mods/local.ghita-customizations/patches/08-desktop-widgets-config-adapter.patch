@@ -1,8 +1,8 @@
 diff --git a/config/Config.qml b/config/Config.qml
-index bd47939..402e501 100644
+index bd47939..4cdf66a 100644
 --- a/config/Config.qml
 +++ b/config/Config.qml
-@@ -885,6 +885,27 @@ Singleton {
+@@ -885,6 +885,29 @@ Singleton {
              property int iconSize: 40
              property int spacingVertical: 16
              property string textColor: "overBackground"
@@ -23,7 +23,9 @@ index bd47939..402e501 100644
 +                        { "appId": "code-oss" },
 +                        { "appId": "firefox" },
 +                        { "appId": "notion" },
-+                        { "appId": "youtube" }
++                        { "appId": "youtube" },
++                        { "appId": "whatsapp" },
++                        { "appId": "outlook" }
 +                    ]
 +                }
 +            })

@@ -1,8 +1,8 @@
 diff --git a/config/defaults/desktop.js b/config/defaults/desktop.js
-index 64cb27e..e347558 100644
+index 64cb27e..9d4e54e 100644
 --- a/config/defaults/desktop.js
 +++ b/config/defaults/desktop.js
-@@ -4,5 +4,26 @@ var data = {
+@@ -4,5 +4,28 @@ var data = {
      "enabled": false,
      "iconSize": 40,
      "spacingVertical": 16,
@@ -25,7 +25,9 @@ index 64cb27e..e347558 100644
 +                { "appId": "code-oss" },
 +                { "appId": "firefox" },
 +                { "appId": "notion" },
-+                { "appId": "youtube" }
++                { "appId": "youtube" },
++                { "appId": "whatsapp" },
++                { "appId": "outlook" }
 +            ]
 +        }
 +    }

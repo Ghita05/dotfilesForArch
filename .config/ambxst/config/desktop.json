@@ -60,6 +60,16 @@
           "appId": "youtube",
           "x": 220,
           "y": 880
+        },
+        {
+          "appId": "whatsapp",
+          "x": 380,
+          "y": 880
+        },
+        {
+          "appId": "outlook",
+          "x": 460,
+          "y": 880
         }
       ]
     }
